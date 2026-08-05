@@ -107,6 +107,10 @@
   .signup-box p.sub{ margin-top:6px; }
   .signup-box label{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; opacity:.6; display:block; margin:14px 0 4px; }
   .signup-box input{ width:100%; border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; font-family:'Quicksand',sans-serif; font-weight:600; font-size:16px; background:var(--paper); color:var(--ink); }
+  .pw-wrap{ position:relative; }
+  .pw-wrap input{ padding-right:44px; }
+  .pw-toggle{ position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:17px; line-height:1; padding:6px; cursor:pointer; opacity:.6; }
+  .pw-toggle:hover, .pw-toggle:focus-visible{ opacity:1; }
   .signup-box button.su-submit{ margin-top:18px; width:100%; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:12px 18px; font-weight:700; font-size:14px; }
   .signup-box .su-note{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.5; margin-top:14px; line-height:1.6; }
   .signup-box .su-close{ position:absolute; top:16px; right:16px; background:var(--paper-dim); border:none; width:28px; height:28px; border-radius:50%; font-size:14px; font-weight:800; display:none; }
@@ -803,7 +807,10 @@
       <label>Email</label>
       <input id="login-email" type="email" placeholder="you@example.com">
       <label>Password</label>
-      <input id="login-password" type="password" placeholder="Your password">
+      <div class="pw-wrap">
+        <input id="login-password" type="password" placeholder="Your password">
+        <button type="button" class="pw-toggle" data-target="login-password" aria-label="Show password">👁️</button>
+      </div>
       <div class="su-error" id="authLoginError"></div>
       <button class="su-submit" id="authLoginBtn">Log in</button>
       <button type="button" id="authResendLoginBtn" style="display:none; background:none; border:none; color:var(--value-green); font-weight:700; font-size:12px; text-decoration:underline; cursor:pointer; padding:0; font-family:'Quicksand',sans-serif; margin-top:10px;">Resend confirmation email</button>
@@ -820,7 +827,10 @@
       <label>Email</label>
       <input id="signup-email" type="email" placeholder="you@example.com">
       <label>Password</label>
-      <input id="signup-password" type="password" placeholder="At least 6 characters">
+      <div class="pw-wrap">
+        <input id="signup-password" type="password" placeholder="At least 6 characters">
+        <button type="button" class="pw-toggle" data-target="signup-password" aria-label="Show password">👁️</button>
+      </div>
       <div class="su-error" id="authSignupError"></div>
       <button class="su-submit" id="authSignupBtn">Create account</button>
       <button type="button" id="authResendSignupBtn" style="display:none; background:none; border:none; color:var(--value-green); font-weight:700; font-size:12px; text-decoration:underline; cursor:pointer; padding:0; font-family:'Quicksand',sans-serif; margin-top:10px;">Resend confirmation email</button>
@@ -2282,6 +2292,18 @@
     userProfile = null;
     renderProfileChip();
     showAuthOverlay('login');
+  });
+
+  // ---- Show/hide password toggles — plain type-attribute swap, works the same on iOS and Android ----
+  $$('.pw-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const input = document.getElementById(btn.dataset.target);
+      if(!input) return;
+      const nowShowing = input.type === 'password';
+      input.type = nowShowing ? 'text' : 'password';
+      btn.textContent = nowShowing ? '🙈' : '👁️';
+      btn.setAttribute('aria-label', nowShowing ? 'Hide password' : 'Show password');
+    });
   });
 
   let authRestoredFromSession = false;
