@@ -899,6 +899,7 @@
   const ADMIN_CODE = "OWNER2026";
 
   let BRANCHES = {};
+  let userAddedBranchCount = 0;
   const DEFAULT_BRANCHES = {
     "Woolworths": {
       "Upington":["Kalahari Mall, 1 Doctor Nelson Mandela Dr, Upington"],
@@ -1306,18 +1307,17 @@
     return Math.ceil(diff/86400000);
   }
   function allLocations(){
-    const extras = extraLocations.filter(t => !LOCATIONS.includes(t));
-    return LOCATIONS.concat(extras);
+    const townSet = new Set(LOCATIONS);
+    Object.values(BRANCHES).forEach(storeMap=>{
+      Object.keys(storeMap).forEach(t=> townSet.add(t));
+    });
+    extraLocations.forEach(t=> townSet.add(t));
+    return Array.from(townSet);
   }
   function allBranchesFor(store){
     const merged = {};
     const base = BRANCHES[store] || {};
     Object.keys(base).forEach(t => { merged[t] = base[t].slice(); });
-    const extra = userBranches[store] || {};
-    Object.keys(extra).forEach(t => {
-      if(!merged[t]) merged[t] = [];
-      merged[t] = merged[t].concat(extra[t]);
-    });
     return merged;
   }
   function branchesFor(store, location){
@@ -1373,13 +1373,26 @@
       const { data, error } = await supabaseClient.from('branches').select('*');
       if(error || !data || data.length === 0) throw new Error('empty');
       const grouped = {};
+      let addedCount = 0;
       data.forEach(row=>{
         if(!grouped[row.store]) grouped[row.store] = {};
         if(!grouped[row.store][row.town]) grouped[row.store][row.town] = [];
         grouped[row.store][row.town].push(row.address);
+        if(row.added_by_user) addedCount++;
       });
       BRANCHES = grouped;
-    }catch(e){ BRANCHES = DEFAULT_BRANCHES; }
+      userAddedBranchCount = addedCount;
+    }catch(e){ BRANCHES = DEFAULT_BRANCHES; userAddedBranchCount = 0; }
+  }
+
+  async function addUserBranch(store, town, address){
+    if(!BRANCHES[store]) BRANCHES[store] = {};
+    if(!BRANCHES[store][town]) BRANCHES[store][town] = [];
+    BRANCHES[store][town].push(address);
+    userAddedBranchCount++;
+    try{
+      if(supabaseClient) await supabaseClient.from('branches').insert({ store, town, address, added_by_user: true });
+    }catch(e){}
   }
 
   async function loadAll(){
@@ -1426,15 +1439,34 @@
       if(detected){ userLocation = detected; await saveUserLocation(); }
     }
 
+    try{
+      if(!supabaseClient) throw new Error('no-client');
+      const { data, error } = await supabaseClient.from('reviews').select('*');
+      if(error) throw error;
+      appReviews = (data||[]).map(row=>({ id: row.id, userId: row.user_id, name: row.name, rating: row.rating, comment: row.comment, date: row.created_at ? new Date(row.created_at).getTime() : Date.now() }));
+    }catch(e){ appReviews = []; }
+
+    try{
+      if(!supabaseClient) throw new Error('no-client');
+      const { data, error } = await supabaseClient.from('category_memory').select('*');
+      if(error) throw error;
+      categoryMemory = {};
+      (data||[]).forEach(row=>{ categoryMemory[row.product_key] = row.category; });
+    }catch(e){ categoryMemory = {}; }
+
+    try{
+      if(!supabaseClient) throw new Error('no-client');
+      const { data, error } = await supabaseClient.from('scan_corrections').select('*').order('corrected_at', { ascending: false }).limit(50);
+      if(error) throw error;
+      scanCorrections = (data||[]).reverse().map(row=>({ name: row.name, wrongPrice: Number(row.wrong_price), wrongQty: row.wrong_qty, rightPrice: Number(row.right_price), rightQty: row.right_qty, correctedAt: row.corrected_at ? new Date(row.corrected_at).getTime() : Date.now() }));
+    }catch(e){ scanCorrections = []; }
+
     // ---- Not yet migrated to Supabase — still session-only until the next stage ----
     trolley = [];
     savingsHistory = [];
     userId = 'u'+Date.now()+'_'+Math.floor(Math.random()*100000);
-    appReviews = [];
     userBranches = {};
     extraLocations = [];
-    scanCorrections = [];
-    categoryMemory = {};
 
     populateLocationSelect();
     populateCategoryFilter();
@@ -1497,8 +1529,26 @@
     }catch(e){}
   }
   async function saveUserLocation(){ try{ localStorage.setItem('skarrel_userLocation', userLocation); }catch(e){} }
-  async function saveTrolley(){ /* trolley sync to Supabase lands in the next stage */ }
-  async function saveSavingsHistory(){ /* savings history sync to Supabase lands in the next stage */ }
+  async function saveTrolley(){
+    try{
+      if(!supabaseClient || !userProfile) return;
+      const rows = trolley.map(t=>({ id: t.id, user_id: userProfile.id, product_id: t.productId, product_name: t.productName, unit: t.unit, store: t.store, brand: t.brand, price: t.price, added_at: new Date(t.addedAt).toISOString() }));
+      if(rows.length) await supabaseClient.from('trolley_items').upsert(rows, { onConflict: 'id' });
+    }catch(e){}
+  }
+  async function deleteTrolleyRow(id){
+    try{ if(!supabaseClient) return; await supabaseClient.from('trolley_items').delete().eq('id', id); }catch(e){}
+  }
+  async function clearTrolleyRows(){
+    try{ if(!supabaseClient || !userProfile) return; await supabaseClient.from('trolley_items').delete().eq('user_id', userProfile.id); }catch(e){}
+  }
+  async function saveSavingsHistory(){
+    try{
+      if(!supabaseClient || !userProfile) return;
+      const rows = savingsHistory.map(h=>({ id: h.id, user_id: userProfile.id, product_id: h.productId, product_name: h.productName, store: h.store, brand: h.brand, price: h.price, savings: h.savings, created_at: new Date(h.date).toISOString() }));
+      if(rows.length) await supabaseClient.from('savings_history').upsert(rows, { onConflict: 'id' });
+    }catch(e){}
+  }
 
   function allEntriesForProduct(productId){
     const prefix = productId+"::";
@@ -1980,17 +2030,17 @@
     setTimeout(()=>{ btn.textContent = orig; }, 1600);
   });
 
-  $('#trolleyList').addEventListener('click', (e)=>{
+  $('#trolleyList').addEventListener('click', async (e)=>{
     const btn = e.target.closest('.tr-remove');
     if(!btn) return;
     trolley = trolley.filter(t=>t.id !== btn.dataset.tid);
-    saveTrolley();
+    await deleteTrolleyRow(btn.dataset.tid);
     renderTrolley();
   });
 
-  $('#clearTrolleyBtn').addEventListener('click', ()=>{
+  $('#clearTrolleyBtn').addEventListener('click', async ()=>{
     trolley = [];
-    saveTrolley();
+    await clearTrolleyRows();
     renderTrolley();
   });
 
@@ -2083,6 +2133,26 @@
     $('#signupOverlay').style.display = 'flex';
   }
 
+  async function loadPersonalData(){
+    try{
+      if(!supabaseClient || !userProfile) throw new Error('no-client');
+      const { data, error } = await supabaseClient.from('trolley_items').select('*').eq('user_id', userProfile.id);
+      if(error) throw error;
+      trolley = (data||[]).map(row=>({ id: row.id, productId: row.product_id, productName: row.product_name, unit: row.unit, store: row.store, brand: row.brand, price: Number(row.price), addedAt: row.added_at ? new Date(row.added_at).getTime() : Date.now() }));
+    }catch(e){ trolley = []; }
+
+    try{
+      if(!supabaseClient || !userProfile) throw new Error('no-client');
+      const { data, error } = await supabaseClient.from('savings_history').select('*').eq('user_id', userProfile.id);
+      if(error) throw error;
+      savingsHistory = (data||[]).map(row=>({ id: row.id, productId: row.product_id, productName: row.product_name, store: row.store, brand: row.brand, price: Number(row.price), savings: Number(row.savings), date: row.created_at ? new Date(row.created_at).getTime() : Date.now() }));
+    }catch(e){ savingsHistory = []; }
+
+    renderTrolley();
+    renderSavingsReport();
+    updateShareCard();
+  }
+
   async function onAuthedUser(user){
     let name = user.email;
     try{
@@ -2090,8 +2160,10 @@
       if(profile && profile.name) name = profile.name;
     }catch(e){}
     userProfile = { name, email: user.email, id: user.id };
+    userId = user.id;
     renderProfileChip();
     $('#signupOverlay').style.display = 'none';
+    await loadPersonalData();
   }
 
   $('#goToSignupBtn').addEventListener('click', ()=> showAuthOverlay('signup'));
@@ -2198,7 +2270,14 @@
   });
 
   async function saveAppReviews(){
-    try{ await window.storage.set('appReviews', JSON.stringify(appReviews), true); }catch(e){}
+    try{
+      if(!supabaseClient) return;
+      const rows = appReviews.map(r=>({ id: r.id, user_id: r.userId, name: r.name, rating: r.rating, comment: r.comment, created_at: new Date(r.date).toISOString() }));
+      if(rows.length) await supabaseClient.from('reviews').upsert(rows, { onConflict: 'id' });
+    }catch(e){}
+  }
+  async function deleteReviewRow(id){
+    try{ if(!supabaseClient) return; await supabaseClient.from('reviews').delete().eq('id', id); }catch(e){}
   }
 
   $('#reviewSubmitBtn').addEventListener('click', async ()=>{
@@ -2451,15 +2530,7 @@
     const address = $('#branch-address').value.trim();
     if(!town || !address){ alert('Fill in both the town and the branch name/address.'); return; }
 
-    if(!userBranches[store]) userBranches[store] = {};
-    if(!userBranches[store][town]) userBranches[store][town] = [];
-    userBranches[store][town].push(address);
-    try{ await window.storage.set('userBranches', JSON.stringify(userBranches), true); }catch(e){}
-
-    if(!allLocations().includes(town)){
-      extraLocations.push(town);
-      try{ await window.storage.set('extraLocations', JSON.stringify(extraLocations), true); }catch(e){}
-    }
+    await addUserBranch(store, town, address);
 
     populateLocationSelect();
     populateStoreSelects();
@@ -2493,7 +2564,11 @@
 
   // ---- Automatic category classification, remembered so we never ask the same question twice ----
   async function saveCategoryMemory(){
-    try{ await window.storage.set('categoryMemory', JSON.stringify(categoryMemory), true); }catch(e){}
+    try{
+      if(!supabaseClient) return;
+      const rows = Object.keys(categoryMemory).map(k=>({ product_key: k, category: categoryMemory[k] }));
+      if(rows.length) await supabaseClient.from('category_memory').upsert(rows, { onConflict: 'product_key' });
+    }catch(e){}
   }
 
   async function classifyCategory(productName){
@@ -2556,7 +2631,13 @@
   async function saveScanCorrection(entry){
     scanCorrections.push(entry);
     if(scanCorrections.length > 50){ scanCorrections = scanCorrections.slice(-50); } // keep it recent and small
-    try{ await window.storage.set('scanCorrections', JSON.stringify(scanCorrections), true); }catch(e){}
+    try{
+      if(!supabaseClient) return;
+      await supabaseClient.from('scan_corrections').insert({
+        name: entry.name, wrong_price: entry.wrongPrice, wrong_qty: entry.wrongQty || null,
+        right_price: entry.rightPrice, right_qty: entry.rightQty || null, corrected_at: new Date(entry.correctedAt).toISOString()
+      });
+    }catch(e){}
   }
 
   function buildCorrectionsHint(){
@@ -2877,15 +2958,7 @@
     if(!town){ alert('Enter a town name first.'); return; }
     if(!address){ alert("Couldn't find the detected address text — try re-scanning."); return; }
 
-    if(!userBranches[store]) userBranches[store] = {};
-    if(!userBranches[store][town]) userBranches[store][town] = [];
-    userBranches[store][town].push(address);
-    try{ await window.storage.set('userBranches', JSON.stringify(userBranches), true); }catch(e){}
-
-    if(!allLocations().includes(town)){
-      extraLocations.push(town);
-      try{ await window.storage.set('extraLocations', JSON.stringify(extraLocations), true); }catch(e){}
-    }
+    await addUserBranch(store, town, address);
 
     populateLocationSelect();
     fillBranchSelect($('#scan-branch'), store);
@@ -3021,7 +3094,6 @@
     const activeSpecialsCount = specials.filter(sp => new Date(sp.until) >= new Date()).length;
     const avgRating = appReviews.length ? (appReviews.reduce((s,r)=>s+r.rating,0)/appReviews.length).toFixed(1) : '–';
     const distinctReviewers = new Set(appReviews.map(r=>r.userId)).size;
-    const userAddedBranchCount = Object.values(userBranches).reduce((sum, townMap)=> sum + Object.values(townMap).reduce((s2,arr)=>s2+arr.length,0), 0);
 
     $('#admin-stats').innerHTML = `
       <div class="rp-item"><div class="rp-num">${priceKeys.length}</div><div class="rp-text"><strong>Prices submitted</strong>Across ${productsWithPrices} product${productsWithPrices!==1?'s':''}</div></div>
@@ -3100,7 +3172,7 @@
     if(reviewBtn){
       if(!confirm('Remove this review?')) return;
       appReviews = appReviews.filter(r => r.id !== reviewBtn.dataset.adminReviewId);
-      await saveAppReviews();
+      await deleteReviewRow(reviewBtn.dataset.adminReviewId);
       renderReviews();
       renderAdminDashboard();
       return;
