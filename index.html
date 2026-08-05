@@ -2188,7 +2188,13 @@
     btn.disabled = true; const origText = btn.textContent; btn.textContent = 'Logging in…';
     try{
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if(error){ errEl.textContent = 'Login failed: ' + error.message; errEl.style.display = 'block'; return; }
+      if(error){
+        errEl.textContent = /email not confirmed/i.test(error.message)
+          ? "Please confirm your email first — check your inbox for the link we sent when you signed up."
+          : 'Login failed: ' + error.message;
+        errEl.style.display = 'block';
+        return;
+      }
       await onAuthedUser(data.user);
     }catch(err){
       errEl.textContent = 'Unexpected error: ' + err.message; errEl.style.display = 'block';
@@ -2214,10 +2220,19 @@
       if(error){ errEl.textContent = 'Sign-up failed: ' + error.message; errEl.style.display = 'block'; return; }
       if(data.user){
         try{ await supabaseClient.from('profiles').insert({ id: data.user.id, name }); }catch(e){}
+      }
+      // A session only exists here if email confirmation is switched off in Supabase.
+      // With confirmation switched on (the normal case), data.session is null even though
+      // data.user is returned — so we must check the SESSION, not the user, to decide
+      // whether this person is actually allowed into the app yet.
+      if(data.session){
         await onAuthedUser(data.user);
       } else {
+        $('#signup-name').value = '';
+        $('#signup-email').value = '';
+        $('#signup-password').value = '';
         errEl.style.color = 'var(--value-green)';
-        errEl.textContent = 'Check your email to confirm your account, then log in.';
+        errEl.textContent = "Almost there — we've sent a confirmation link to " + email + ". Open it on this device to finish signing up, then come back here.";
         errEl.style.display = 'block';
       }
     }catch(err){
@@ -2234,25 +2249,52 @@
     showAuthOverlay('login');
   });
 
+  let authRestoredFromSession = false;
+
   async function initAuthAndApp(){
     try{
       if(typeof window.supabase !== 'undefined'){
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          auth: {
+            persistSession: true,      // keep the session saved in this browser
+            autoRefreshToken: true,    // silently renew it so it doesn't expire while the app is open
+            detectSessionInUrl: true,  // pick up the session when returning from an email confirmation link
+            storage: window.localStorage,
+            storageKey: 'skarrel-auth'
+          }
+        });
       }
     }catch(e){}
 
+    // Listens for the moment Supabase confirms who's signed in — whether that's an
+    // already-saved session being restored on this visit, or a fresh sign-in.
+    if(supabaseClient){
+      supabaseClient.auth.onAuthStateChange((event, session)=>{
+        if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session && session.user){
+          authRestoredFromSession = true;
+          onAuthedUser(session.user);
+        } else if(event === 'SIGNED_OUT'){
+          userProfile = null;
+          renderProfileChip();
+        }
+      });
+    }
+
     await loadAll();
 
-    if(supabaseClient){
+    if(supabaseClient && !authRestoredFromSession){
       try{
         const { data: { session } } = await supabaseClient.auth.getSession();
         if(session && session.user){
+          authRestoredFromSession = true;
           await onAuthedUser(session.user);
           return;
         }
       }catch(e){}
     }
-    showAuthOverlay('login');
+    if(!authRestoredFromSession){
+      showAuthOverlay('login');
+    }
   }
 
   // ---------------- Reviews ----------------
