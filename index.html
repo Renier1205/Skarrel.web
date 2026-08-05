@@ -3,183 +3,3106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Skarrel — Auth Test (Phase 1)</title>
+<title>Skarrel — Know the real price</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 46'%3E%3Crect width='46' height='46' rx='12' fill='%23C1774A'/%3E%3Cpath d='M12 32 C 15 25, 13 17, 16.5 10.5' stroke='%23FBF6EA' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Cpath d='M21 34 C 24.5 25.5, 21.5 16, 25 7.5' stroke='%23FBF6EA' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Cpath d='M30 32 C 33 25.5, 30 18, 33 11.5' stroke='%23FBF6EA' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 46'%3E%3Crect width='46' height='46' rx='12' fill='%23C1774A'/%3E%3Cpath d='M12 32 C 15 25, 13 17, 16.5 10.5' stroke='%23FBF6EA' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Cpath d='M21 34 C 24.5 25.5, 21.5 16, 25 7.5' stroke='%23FBF6EA' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Cpath d='M30 32 C 33 25.5, 30 18, 33 11.5' stroke='%23FBF6EA' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Quicksand:wght@500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap');
+
   :root{
-    --ink:#4A3B2D; --paper:#F3EADA; --paper-card:#FBF6EA; --clay:#C1774A;
-    --value-green:#74845A; --line:#DCCEAF;
+    --ink:#4A3B2D;
+    --paper:#F3EADA;
+    --paper-dim:#E7DBC4;
+    --paper-card:#FBF6EA;
+    --value-green:#74845A;
+    --value-green-soft:#E5EADA;
+    --clay:#C1774A;
+    --clay-soft:#F3E1D3;
+    --ochre:#BC9A46;
+    --line:#DCCEAF;
   }
+
   *{box-sizing:border-box;}
-  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Quicksand',sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
-  h1{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px; margin:0 0 6px; }
-  .box{ background:var(--paper-card); border-radius:20px; padding:30px; max-width:400px; width:100%; box-shadow:0 20px 40px rgba(40,30,15,.15); }
-  p.sub{ opacity:.7; font-size:13.5px; margin:0 0 16px; line-height:1.5; }
-  label{ font-weight:700; font-size:11px; text-transform:uppercase; opacity:.6; display:block; margin:14px 0 4px; }
-  input{ width:100%; border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; font-family:'Quicksand',sans-serif; font-weight:600; font-size:16px; background:var(--paper); color:var(--ink); }
-  button{ margin-top:18px; width:100%; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:12px; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
-  button.secondary{ background:transparent; border:1.5px solid var(--line); color:var(--ink); margin-top:8px; }
-  button:disabled{ opacity:.5; }
-  #status{ margin-top:16px; font-size:13px; font-weight:700; padding:10px 12px; border-radius:10px; display:none; word-break:break-word; }
-  #status.ok{ background:#E5EADA; color:var(--value-green); display:block; }
-  #status.err{ background:#F3E1D3; color:var(--clay); display:block; }
-  #connCheck{ font-size:12px; font-weight:700; padding:10px 14px; border-radius:10px; margin-bottom:18px; }
-  #connCheck.checking{ background:#E7DBC4; color:var(--ink); }
-  #connCheck.ok{ background:#E5EADA; color:var(--value-green); }
-  #connCheck.err{ background:#F3E1D3; color:var(--clay); }
-  #loggedInView{ display:none; }
-  #buildTag{ position:fixed; bottom:8px; right:12px; font-size:10px; opacity:.35; font-family:monospace; }
+  html,body{margin:0;padding:0; overflow-x:hidden; width:100%;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Quicksand',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    line-height:1.08;
+    margin:0;
+  }
+  .hand{ font-family:'Caveat',cursive; }
+  a{ color:inherit; }
+  button{ font-family:inherit; cursor:pointer; }
+
+  ::selection{ background:var(--ochre); color:var(--paper-card); }
+
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 24px; }
+  .torn{
+    position:relative;
+    height:18px;
+    background:
+      linear-gradient(135deg, var(--paper) 50%, transparent 50%) 0 0/14px 18px repeat-x,
+      linear-gradient(-135deg, var(--paper) 50%, transparent 50%) 0 0/14px 18px repeat-x;
+  }
+
+  header.nav{
+    position:sticky; top:0; z-index:40;
+    background:var(--ink); color:var(--paper);
+    border-bottom:3px solid var(--ochre);
+  }
+  header.nav .wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    padding-top:14px; padding-bottom:14px; flex-wrap:wrap; gap:10px;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-icon{
+    width:34px; height:34px; border-radius:10px; background:var(--clay);
+    display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.1; }
+  .brand .mark{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:21px; }
+  .brand .mark span{ color:var(--ochre); }
+  .brand .tag{ font-family:'Caveat',cursive; font-weight:600; font-size:14px; opacity:.8; }
+  .nav-right{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  nav.tabs{ display:flex; gap:4px; flex-wrap:wrap; }
+  nav.tabs button{
+    background:transparent; border:none; color:var(--paper);
+    font-family:'Quicksand',sans-serif; font-weight:700; font-size:13.5px;
+    padding:8px 12px; border-radius:20px; opacity:.68; letter-spacing:.01em;
+  }
+  nav.tabs button:hover{ opacity:1; }
+  nav.tabs button.active{ opacity:1; background:rgba(255,255,255,.12); }
+
+  .loc-picker{ display:flex; align-items:center; gap:6px; }
+  .loc-picker svg{ flex:0 0 auto; }
+  .loc-picker select{
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.28); color:var(--paper);
+    font-family:'Quicksand',sans-serif; font-weight:600; font-size:13px; padding:7px 8px; border-radius:14px;
+  }
+  .loc-picker select option{ color:#000; }
+  .loc-picker button{
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.28); color:var(--paper);
+    border-radius:14px; padding:6px 9px; font-size:13px; cursor:pointer;
+  }
+  .loc-picker button:disabled{ opacity:.5; cursor:default; }
+
+  .profile-chip{
+    background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.28); color:var(--paper);
+    border-radius:14px; padding:6px 12px; font-family:'Quicksand',sans-serif; font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+
+  .signup-box{
+    background:var(--paper-card); max-width:400px; width:100%; border-radius:20px; padding:30px; position:relative;
+    box-shadow:0 30px 60px rgba(40,30,15,.4);
+  }
+  .signup-box .su-icon{ width:44px; height:44px; border-radius:13px; background:var(--clay); display:flex; align-items:center; justify-content:center; margin-bottom:14px; }
+  .signup-box h2{ font-size:22px; }
+  .signup-box p.sub{ margin-top:6px; }
+  .signup-box label{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; opacity:.6; display:block; margin:14px 0 4px; }
+  .signup-box input{ width:100%; border:1.5px solid var(--line); border-radius:10px; padding:10px 12px; font-family:'Quicksand',sans-serif; font-weight:600; font-size:16px; background:var(--paper); color:var(--ink); }
+  .signup-box button.su-submit{ margin-top:18px; width:100%; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:12px 18px; font-weight:700; font-size:14px; }
+  .signup-box .su-note{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.5; margin-top:14px; line-height:1.6; }
+  .signup-box .su-close{ position:absolute; top:16px; right:16px; background:var(--paper-dim); border:none; width:28px; height:28px; border-radius:50%; font-size:14px; font-weight:800; display:none; }
+  .signup-box .su-error{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:12px; color:var(--clay); margin-top:8px; display:none; }
+  .signup-box .su-links{ display:flex; justify-content:space-between; margin-top:12px; }
+  .signup-box .su-links button{ background:none; border:none; color:var(--value-green); font-weight:700; font-size:12px; text-decoration:underline; cursor:pointer; padding:0; font-family:'Quicksand',sans-serif; }
+
+  .hero{ background:var(--ink); color:var(--paper); padding:52px 0 0; }
+  .hero .wrap{ display:grid; grid-template-columns:1.15fr .85fr; gap:48px; align-items:end; padding-bottom:40px; }
+  .hero h1{ font-size:54px; color:var(--paper); }
+  .hero h1 .accent{ color:var(--ochre); }
+  .hero p.lede{ font-family:'Quicksand',sans-serif; font-weight:500; font-size:17px; max-width:46ch; opacity:.8; margin-top:16px; }
+
+  .receipt{
+    background:var(--paper-card); color:var(--ink);
+    padding:22px 22px 14px; box-shadow:0 18px 40px rgba(40,30,15,.35);
+    transform:rotate(-1.2deg); border-radius:6px;
+  }
+  .receipt .r-head{ font-family:'Baloo 2',sans-serif; font-weight:600; font-size:13px; text-align:center; letter-spacing:.04em; opacity:.6; border-bottom:2px dashed var(--line); padding-bottom:10px; margin-bottom:10px; }
+  .receipt .r-item{ display:flex; justify-content:space-between; font-family:'Quicksand',sans-serif; font-weight:600; font-size:14px; padding:5px 0; }
+  .receipt .r-item .store{ opacity:.75; }
+  .receipt .r-item.best{ color:var(--value-green); font-weight:800; }
+  .r-circle{ display:inline-block; position:relative; padding:0 4px; }
+  .r-circle svg{ position:absolute; left:-6px; top:-6px; width:calc(100% + 12px); height:calc(100% + 14px); pointer-events:none; }
+  .receipt .r-save{ margin-top:8px; padding-top:10px; border-top:2px dashed var(--line); font-family:'Caveat',cursive; font-weight:700; font-size:17px; text-align:center; color:var(--clay); }
+
+  main{ padding-bottom:80px; }
+  section.block{ padding:44px 0; border-bottom:1px solid var(--line); }
+  section.block:last-child{ border-bottom:none; }
+  .eyebrow{ font-family:'Caveat',cursive; font-weight:700; font-size:18px; color:var(--value-green); margin-bottom:2px; display:block; }
+  h2.h{ font-size:28px; margin-bottom:4px; }
+  p.sub{ opacity:.7; font-size:15px; margin-top:8px; max-width:60ch; font-weight:500; }
+
+  .scanner{
+    display:flex; gap:10px; margin-top:22px; background:var(--paper-card);
+    border:2px solid var(--ink); border-radius:16px; padding:6px; align-items:center; flex-wrap:wrap;
+  }
+  .scanner svg{ flex:0 0 auto; margin-left:8px; }
+  .scanner input{ flex:1; min-width:160px; border:none; background:transparent; outline:none; font-family:'Quicksand',sans-serif; font-weight:600; font-size:15px; padding:10px 4px; color:var(--ink); }
+  .scanner select{ border:none; background:var(--paper-dim); border-radius:10px; padding:10px 10px; font-family:'Quicksand',sans-serif; font-weight:700; font-size:16px; color:var(--ink); }
+  .scanner button.go{ background:var(--ink); color:var(--paper); border:none; border-radius:10px; padding:10px 18px; font-weight:700; font-size:13px; letter-spacing:.02em; }
+
+  .cat-strip{ display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+  .cat-chip{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:12px; background:var(--paper-card); border:1px solid var(--line); padding:6px 14px; border-radius:20px; opacity:.75; }
+  .cat-chip.active{ background:var(--ink); color:var(--paper); opacity:1; border-color:var(--ink); }
+
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px; margin-top:24px; }
+  .tag-card{ background:var(--paper-card); border:1px solid var(--line); border-radius:14px; padding:16px 16px 14px; position:relative; cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; }
+  .tag-card:hover{ transform:translateY(-3px) rotate(-0.5deg); box-shadow:0 10px 24px rgba(74,59,45,.15); }
+  .quick-add{
+    position:absolute; top:12px; right:12px; width:28px; height:28px; border-radius:50%;
+    background:var(--value-green); color:#fff; border:none; font-weight:800; font-size:16px; line-height:1;
+    display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(74,59,45,.2); z-index:2;
+  }
+  .quick-add:active{ transform:scale(0.92); }
+  .tab-badge{ display:inline-block; background:var(--ochre); color:var(--ink); font-size:10px; font-weight:800; border-radius:8px; padding:1px 6px; margin-left:4px; }
+
+  .trolley-row{ display:flex; align-items:center; gap:10px; background:var(--paper-card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:8px; }
+  .trolley-row .tr-info{ flex:1; min-width:0; }
+  .trolley-row .tr-name{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:14px; }
+  .trolley-row .tr-meta{ font-family:'Quicksand',sans-serif; font-size:11.5px; opacity:.6; font-weight:600; margin-top:2px; }
+  .trolley-row .tr-price{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px; color:var(--value-green); white-space:nowrap; }
+  .trolley-row .tr-remove{ background:var(--clay-soft); color:var(--clay); border:none; width:26px; height:26px; border-radius:50%; font-weight:800; font-size:13px; flex:0 0 auto; }
+
+  .savings-banner{ margin-top:22px; background:var(--value-green); color:#fff; border-radius:16px; padding:20px 22px; }
+  .savings-banner .sb-amount{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:30px; }
+  .savings-banner .sb-label{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:13px; opacity:.92; margin-top:2px; }
+  .savings-banner .sb-note{ font-family:'Caveat',cursive; font-weight:600; font-size:15px; opacity:.85; margin-top:8px; }
+
+  .checkout-group{ background:var(--paper-card); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-top:12px; }
+  .checkout-group .cg-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .checkout-group .cg-store{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; }
+  .checkout-group .cg-sub{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; opacity:.55; margin-top:2px; }
+  .checkout-group ul{ list-style:none; padding:0; margin:10px 0 0; }
+  .checkout-group li{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:12.5px; opacity:.8; padding:3px 0; }
+  .checkout-group .cg-total{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; color:var(--value-green); white-space:nowrap; }
+  .checkout-group .cg-go{ margin-top:10px; display:inline-block; }
+  .add-trolley-btn{
+    margin-top:6px; display:inline-block; background:var(--value-green); color:#fff; border:none; border-radius:14px;
+    padding:6px 12px; font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; white-space:nowrap;
+  }
+  .card-icon{ width:46px; height:46px; border-radius:14px; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:8px; }
+  .modal-head-row{ display:flex; align-items:center; gap:14px; }
+  .modal-icon{ width:52px; height:52px; border-radius:16px; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:28px; flex:0 0 auto; }
+  .tr-icon{ width:34px; height:34px; border-radius:10px; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; }
+
+  .report-month{ background:var(--paper-card); border:1px solid var(--line); border-radius:16px; padding:18px 20px; margin-top:14px; }
+  .rm-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .rm-title{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:17px; }
+  .rm-sub{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:11.5px; opacity:.55; margin-top:2px; }
+  .rm-saved{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px; color:var(--value-green); white-space:nowrap; }
+  .rm-bar-track{ margin-top:12px; height:10px; background:var(--paper-dim); border-radius:6px; overflow:hidden; }
+  .rm-bar-fill{ height:100%; background:var(--value-green); border-radius:6px; }
+  .rm-spent{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:11.5px; opacity:.55; margin-top:8px; }
+
+  .share-card-wrap{ margin-top:24px; }
+  .share-card{
+    width:280px; border-radius:22px; padding:26px 22px; background:linear-gradient(160deg, var(--ink), #3a2f24);
+    color:var(--paper); box-shadow:0 18px 36px rgba(40,30,15,.35); margin:0 auto;
+  }
+  .share-card .sc-logo{ display:flex; align-items:center; gap:8px; }
+  .share-card .sc-mark{ width:30px; height:30px; border-radius:9px; background:var(--clay); display:flex; align-items:center; justify-content:center; }
+  .share-card .sc-name{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:16px; }
+  .share-card .sc-month{ font-family:'Caveat',cursive; font-weight:600; font-size:16px; opacity:.75; margin-top:18px; }
+  .share-card .sc-amount{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:40px; color:var(--ochre); margin-top:2px; }
+  .share-card .sc-sub{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:12px; opacity:.75; margin-top:6px; }
+  .share-card .sc-tag{ font-family:'Caveat',cursive; font-weight:700; font-size:16px; margin-top:22px; opacity:.85; border-top:1px dashed rgba(255,255,255,.25); padding-top:14px; }
+  .share-actions{ display:flex; justify-content:center; gap:10px; margin-top:18px; flex-wrap:wrap; }
+  .share-actions button{ background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 20px; font-weight:700; font-size:13.5px; }
+  .share-actions button.secondary{ background:transparent; border:1.5px solid var(--line); color:var(--ink); }
+  .tag-card .cat{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:.06em; opacity:.55; color:var(--clay); }
+  .tag-card h3{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:17px; margin-top:6px; line-height:1.2; }
+  .tag-card .unit{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:12px; opacity:.55; margin-top:2px; }
+  .tag-card .best-row{ display:flex; align-items:baseline; justify-content:space-between; margin-top:14px; padding-top:12px; border-top:2px dashed var(--line); }
+  .tag-card .best-price{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:21px; color:var(--value-green); }
+  .tag-card .best-store{ font-size:11px; opacity:.65; font-weight:700; text-transform:uppercase; }
+  .tag-card .n-stores{ font-family:'Quicksand',sans-serif; font-size:11px; opacity:.5; margin-top:6px; font-weight:600; }
+  .tag-card .special-flag{ position:absolute; top:-8px; left:14px; background:var(--clay); color:#fff; font-family:'Quicksand',sans-serif; font-size:10px; font-weight:700; padding:3px 10px; border-radius:10px; text-transform:uppercase; letter-spacing:.03em; }
+  .empty{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:14px; opacity:.55; padding:30px 0; }
+
+  .overlay{ position:fixed; inset:0; background:rgba(74,59,45,.55); z-index:80; display:none; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; }
+  .overlay.open{ display:flex; }
+  .modal{ background:var(--paper-card); max-width:700px; width:100%; border-radius:18px; padding:28px; position:relative; box-shadow:0 30px 60px rgba(40,30,15,.4); }
+  .modal .close{ position:absolute; top:16px; right:16px; background:var(--paper-dim); border:none; width:30px; height:30px; border-radius:50%; font-size:15px; font-weight:800; }
+  .modal .m-cat{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; opacity:.55; letter-spacing:.06em; color:var(--clay);}
+  .modal h2{ font-size:25px; margin-top:6px; }
+  .modal .m-unit{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:13px; opacity:.6; margin-top:4px; }
+  .m-filter{ margin-top:16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .m-filter label{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; opacity:.6; }
+  .m-filter select{ border:1.5px solid var(--line); border-radius:10px; padding:7px 10px; font-family:'Quicksand',sans-serif; font-weight:600; font-size:16px; background:var(--paper); color:var(--ink); }
+
+  .price-list{ margin-top:14px; display:flex; flex-direction:column; gap:10px; }
+  .price-card{
+    background:var(--paper-card); border:1px solid var(--line); border-radius:14px; padding:14px 16px;
+  }
+  .price-card.winner{ background:var(--value-green-soft); border-color:var(--value-green); }
+  .pc-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .pc-brand{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:15px; }
+  .pc-store{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:12px; opacity:.65; margin-top:1px; }
+  .pc-price{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:20px; white-space:nowrap; }
+  .pc-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:8px; font-family:'Quicksand',sans-serif; font-size:11.5px; opacity:.6; }
+  .pc-meta .stale{ color:var(--clay); opacity:1; font-weight:700; }
+  .pc-trust{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .pc-pickup{ font-family:'Quicksand',sans-serif; font-size:12px; opacity:.75; line-height:1.5; margin-top:8px; }
+  .pc-pickup.none{ opacity:.4; }
+  .pc-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
+  .trust-cell{ display:flex; flex-direction:column; gap:4px; align-items:flex-start; }
+  .trust-btn{
+    background:var(--paper-dim); border:none; border-radius:10px; padding:3px 8px;
+    font-family:'Quicksand',sans-serif; font-weight:700; font-size:10.5px; white-space:nowrap; cursor:pointer;
+  }
+  .trust-btn.report{ color:var(--clay); }
+  .trust-btn.confirm{ color:var(--value-green); }
+  .trust-btn:disabled{ opacity:.5; cursor:default; }
+  .disputed-flag{
+    display:inline-block; background:var(--clay); color:#fff; font-family:'Quicksand',sans-serif;
+    font-weight:700; font-size:9.5px; text-transform:uppercase; letter-spacing:.03em; padding:2px 6px; border-radius:6px;
+  }
+  .deliver-btn{ display:inline-block; font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; letter-spacing:.02em; background:var(--ink); color:var(--paper); padding:7px 12px; border-radius:14px; text-decoration:none; white-space:nowrap; }
+  .special-note{ margin-top:6px; display:inline-flex; align-items:center; gap:6px; background:var(--clay-soft); color:var(--clay); font-family:'Quicksand',sans-serif; font-weight:700; font-size:11.5px; padding:4px 10px; border-radius:12px; }
+  .loc-note{ margin-top:10px; font-family:'Caveat',cursive; font-weight:600; font-size:15px; opacity:.7; display:flex; align-items:center; gap:6px; }
+
+  .submit-form{ margin-top:20px; border-top:1px solid var(--line); padding-top:18px; }
+  .submit-form .frow{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .submit-form label{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; opacity:.6; display:block; margin-bottom:4px; }
+  .submit-form select, .submit-form input{ border:1.5px solid var(--line); border-radius:10px; padding:9px 10px; font-family:'Quicksand',sans-serif; font-weight:600; font-size:16px; background:var(--paper); color:var(--ink); width:100%; }
+  .submit-form .field{ flex:1; min-width:120px; }
+  .submit-form button{ margin-top:14px; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 18px; font-weight:700; font-size:13px; letter-spacing:.02em; }
+  .submit-form button:hover{ filter:brightness(1.08); }
+  .toast{ font-family:'Caveat',cursive; font-weight:700; font-size:16px; color:var(--value-green); margin-top:10px; display:none; }
+  .toast.show{ display:block; }
+
+  .cork{ background:#E9DCB8; border:1px solid #D3C08C; border-radius:16px; padding:24px; margin-top:24px; display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:18px; }
+  .pin{ background:#FFFCF2; padding:16px 14px 14px; border-radius:8px; box-shadow:0 6px 14px rgba(70,50,15,.18); position:relative; transform:rotate(var(--r,0deg)); }
+  .pin::before{ content:''; position:absolute; top:-7px; left:50%; transform:translateX(-50%); width:12px; height:12px; border-radius:50%; background:var(--clay); box-shadow:0 2px 3px rgba(0,0,0,.3); }
+  .pin .p-store{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:.06em; opacity:.6; }
+  .pin h4{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; margin:6px 0 8px; }
+  .pin .p-prices{ display:flex; align-items:baseline; gap:8px; }
+  .pin .p-was{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:12px; text-decoration:line-through; opacity:.45; }
+  .pin .p-now{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:20px; color:var(--clay); }
+  .pin .p-until{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:10.5px; opacity:.55; margin-top:8px; }
+
+  .special-form{ background:var(--paper-card); border:1px solid var(--line); border-radius:16px; padding:22px; margin-top:24px; }
+  .special-form h3{ font-size:17px; }
+  .special-form p.hint{ font-family:'Caveat',cursive; font-weight:600; font-size:15px; opacity:.65; margin-top:4px; }
+  .gate-badge{ display:inline-block; background:var(--clay-soft); color:var(--clay); font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; padding:4px 10px; border-radius:10px; margin-bottom:10px; text-transform:uppercase; letter-spacing:.03em; }
+  .gate-row{ display:flex; align-items:center; gap:8px; }
+  .gate-icon{ width:24px; height:24px; border-radius:8px; background:var(--clay); display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+
+  .scan-drop{ margin-top:22px; border:2.5px dashed var(--line); border-radius:18px; background:var(--paper-card); padding:26px; text-align:center; }
+  .scan-drop input[type=file]{ display:none; }
+  .scan-drop .pick-btn{ background:var(--clay); color:#fff; border:none; border-radius:12px; padding:11px 20px; font-weight:700; font-size:13.5px; cursor:pointer; display:inline-block; }
+  .scan-drop .pick-btn.video-btn{ background:var(--value-green); }
+  .scan-drop p{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:13px; opacity:.6; margin-top:10px; }
+  .scan-drop p.scan-or{ font-family:'Caveat',cursive; font-weight:600; font-size:16px; opacity:.6; margin:20px 0 12px; border-top:1px dashed var(--line); padding-top:16px; }
+  .scan-preview{ margin-top:16px; max-width:220px; max-height:280px; border-radius:14px; box-shadow:0 10px 20px rgba(40,30,15,.25); display:none; }
+  .scan-go{ margin-top:16px; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 22px; font-weight:700; font-size:13.5px; display:none; cursor:pointer; }
+  .scan-status{ font-family:'Caveat',cursive; font-weight:700; font-size:16px; margin-top:12px; display:none; color:var(--clay); }
+  .scan-privacy{ font-family:'Quicksand',sans-serif; font-size:11px; opacity:.5; margin-top:14px; font-weight:600; }
+  .scan-results{ margin-top:24px; display:none; }
+  .scan-meta{ margin-top:14px; }
+  .scan-error{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:13px; color:var(--clay); margin-top:12px; display:none; }
+
+  .scan-row{ display:flex; gap:8px; align-items:center; background:var(--paper-card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:8px; flex-wrap:wrap; }
+  .scan-row input[type=checkbox]{ width:18px; height:18px; flex:0 0 auto; }
+  .scan-row input[type=text], .scan-row input[type=number]{ border:1.5px solid var(--line); border-radius:8px; padding:7px 9px; font-family:'Quicksand',sans-serif; font-weight:600; font-size:16px; background:var(--paper); color:var(--ink); }
+  .scan-row .sr-name{ flex:1.6; min-width:130px; }
+  .scan-row .sr-brand{ flex:1.1; min-width:110px; }
+  .scan-row .sr-price{ flex:0 0 85px; }
+  .scan-row .sr-tag{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:10px; padding:3px 8px; border-radius:8px; background:var(--value-green-soft); color:var(--value-green); white-space:nowrap; }
+  .scan-row .sr-tag.new{ background:var(--clay-soft); color:var(--clay); }
+  .scan-row .sr-tag.cat{ background:var(--paper-dim); color:var(--ink); opacity:.8; }
+
+  .receipt-badge{
+    display:inline-block; background:var(--value-green-soft); color:var(--value-green); font-family:'Quicksand',sans-serif;
+    font-weight:700; font-size:9.5px; text-transform:uppercase; letter-spacing:.03em; padding:2px 7px; border-radius:6px; margin-left:6px;
+  }
+
+  .retailer-pitch{
+    background:var(--ink); color:var(--paper); border-radius:20px; padding:26px 26px 22px; margin-top:22px;
+  }
+  .retailer-pitch h3{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:18px; color:var(--ochre); }
+  .rp-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin-top:16px; }
+  .rp-item{ display:flex; gap:12px; align-items:flex-start; }
+  .rp-num{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:20px; color:var(--clay); flex:0 0 auto; opacity:.9; }
+  .rp-text{ font-family:'Quicksand',sans-serif; font-weight:500; font-size:13px; line-height:1.55; opacity:.92; }
+  .rp-text strong{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:13.5px; display:block; margin-bottom:2px; }
+  .rp-note{ font-family:'Caveat',cursive; font-weight:600; font-size:15px; opacity:.75; margin-top:18px; border-top:1px dashed rgba(255,255,255,.2); padding-top:14px; }
+  .code-error{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:12.5px; color:var(--clay); margin-top:10px; display:none; }
+  .verified-note{ font-family:'Caveat',cursive; font-weight:600; font-size:15px; opacity:.7; margin-top:10px; }
+
+  .review-summary{ background:var(--ink); color:var(--paper); border-radius:20px; padding:22px 26px; margin-top:20px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+  .review-summary .rs-avg{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:38px; color:var(--ochre); }
+  .review-summary .rs-stars{ font-size:18px; color:var(--ochre); letter-spacing:2px; }
+  .review-summary .rs-count{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:12.5px; opacity:.8; }
+
+  .star-picker{ display:flex; gap:4px; margin-top:8px; }
+  .star-btn{ background:none; border:none; font-size:30px; color:var(--paper-dim); cursor:pointer; line-height:1; padding:0; }
+  .star-btn.active{ color:var(--ochre); }
+
+  .review-card{ background:var(--paper-card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-top:10px; }
+  .review-card .rc-top{ display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .review-card .rc-stars{ color:var(--ochre); font-size:14px; letter-spacing:1px; }
+  .review-card .rc-name{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:12.5px; opacity:.7; }
+  .review-card .rc-date{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.45; }
+  .review-card .rc-comment{ font-family:'Quicksand',sans-serif; font-weight:500; font-size:13.5px; margin-top:8px; line-height:1.5; }
+
+  footer{ padding:26px 0; text-align:center; }
+  footer p{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.45; }
+
+  @media (max-width:760px){
+    .wrap{ padding:0 16px; }
+    .hero{ padding-top:36px; }
+    .hero .wrap{ grid-template-columns:1fr; gap:24px; padding-bottom:28px; }
+    .hero h1{ font-size:32px; }
+    .hero p.lede{ font-size:15px; }
+    header.nav .wrap{ flex-direction:column; align-items:stretch; gap:10px; padding-top:12px; padding-bottom:12px; }
+    .nav-right{ width:100%; flex-direction:column; align-items:stretch; gap:8px; }
+    .loc-picker{ width:100%; }
+    .loc-picker select{ width:100%; }
+    nav.tabs{
+      display:flex; flex-wrap:nowrap; width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      gap:6px; padding-bottom:2px; -ms-overflow-style:none; scrollbar-width:none;
+    }
+    nav.tabs::-webkit-scrollbar{ display:none; }
+    nav.tabs button{ flex:0 0 auto; white-space:nowrap; font-size:12.5px; padding:7px 11px; }
+    section.block{ padding:32px 0; }
+    h2.h{ font-size:23px; }
+    .grid{ grid-template-columns:1fr 1fr; gap:12px; }
+    .cork{ grid-template-columns:1fr 1fr; gap:12px; padding:16px; }
+    .modal{ padding:18px; border-radius:14px; }
+    .overlay{ padding:16px 10px; }
+    .submit-form .frow{ gap:8px; }
+  }
+  @media (max-width:480px){
+    .hero h1{ font-size:27px; }
+    .grid{ grid-template-columns:1fr; }
+    .cork{ grid-template-columns:1fr; }
+  }
+
+  .price-card .add-trolley-btn, .price-card .deliver-btn{ margin-top:0; }
+
+  :focus-visible{ outline:2px solid var(--ochre); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<div class="box">
-  <div id="connCheck" class="checking">🔄 Checking connection to Supabase…</div>
-
-  <div id="authView">
-    <h1>Skarrel — Auth Test</h1>
-    <p class="sub">Phase 1: confirming real Supabase sign-up and login actually work on your live domain.</p>
-
-    <label>Name</label>
-    <input id="name" type="text" placeholder="e.g. Renier">
-    <label>Email</label>
-    <input id="email" type="email" placeholder="you@example.com">
-    <label>Password</label>
-    <input id="password" type="password" placeholder="At least 6 characters">
-
-    <button id="signUpBtn">Create account</button>
-    <button id="signInBtn" class="secondary">I already have an account — log in</button>
-
-    <div id="status"></div>
+<header class="nav">
+  <div class="wrap">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 46 46" fill="none">
+          <path d="M12 32 C 15 25, 13 17, 16.5 10.5" stroke="#FBF6EA" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M21 34 C 24.5 25.5, 21.5 16, 25 7.5" stroke="#FBF6EA" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M30 32 C 33 25.5, 30 18, 33 11.5" stroke="#FBF6EA" stroke-width="4" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="mark">Skarrel</span>
+        <span class="tag">here to help you save!</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <button id="profileChip" class="profile-chip" type="button" style="display:none;"></button>
+      <div class="loc-picker">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F3EADA" stroke-width="2"><path d="M12 22s7-7.58 7-13A7 7 0 0 0 5 9c0 5.42 7 13 7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        <select id="locationSelect"></select>
+        <button id="autoLocateBtn" type="button" title="Use my location">🎯</button>
+      </div>
+      <nav class="tabs">
+        <button data-view="browse" class="active">Compare</button>
+        <button data-view="trolley">My Trolley<span id="trolleyBadge" class="tab-badge" style="display:none;"></span></button>
+        <button data-view="report">Savings Report</button>
+        <button data-view="specials">Specials</button>
+        <button data-view="submit">Add a price</button>
+        <button data-view="scan">Scan receipt</button>
+        <button data-view="post-special">Post a special</button>
+        <button data-view="reviews">Reviews</button>
+        <button data-view="admin">Admin</button>
+      </nav>
+    </div>
   </div>
+</header>
 
-  <div id="loggedInView">
-    <h1>You're in ✅</h1>
-    <p class="sub" id="loggedInSub"></p>
-    <button id="signOutBtn" class="secondary">Sign out</button>
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Same milk.<br>Different price.<br><span class="accent">Every store.</span></h1>
+      <p class="lede">Shoppers upload real prices from Woolworths, Checkers, Pick n Pay, Shoprite, SPAR and more — brand by brand — so you always know who's cheapest, and where to pick it up, before you go.</p>
+    </div>
+    <div class="receipt" id="heroReceipt">
+      <div class="r-head">Full Cream Milk 2L · Clover</div>
+      <div class="r-item"><span class="store">Woolworths</span><span>R32.00</span></div>
+      <div class="r-item best">
+        <span class="store">Checkers</span>
+        <span class="r-circle">R29.00
+          <svg viewBox="0 0 80 34"><path d="M6 20 C 2 8, 20 2, 40 3 C 62 4, 78 8, 74 18 C 70 30, 44 33, 22 30 C 8 28, 2 24, 6 20" fill="none" stroke="#C1774A" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </span>
+      </div>
+      <div class="r-item"><span class="store">Pick n Pay</span><span>R30.50</span></div>
+      <div class="r-save">you save R3.00 at Checkers!</div>
+    </div>
+  </div>
+  <div class="torn"></div>
+</section>
+
+<main class="wrap">
+
+  <section class="block" id="view-browse">
+    <span class="eyebrow">01 — compare</span>
+    <h2 class="h">Find the best value</h2>
+    <p class="sub">Search a product or filter by category. Each one can have several brands — open a product to see every brand and store side by side, cheapest first.</p>
+
+    <div class="scanner">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="2" height="12" fill="#4A3B2D"/><rect x="5" y="4" width="1" height="12" fill="#4A3B2D"/><rect x="7" y="4" width="2" height="12" fill="#4A3B2D"/><rect x="10" y="4" width="1" height="12" fill="#4A3B2D"/><rect x="12" y="4" width="2" height="12" fill="#4A3B2D"/><rect x="15" y="4" width="1" height="12" fill="#4A3B2D"/><rect x="17" y="4" width="2" height="12" fill="#4A3B2D"/></svg>
+      <input id="searchInput" type="text" placeholder="Search products… e.g. milk, bread, eggs">
+      <select id="categoryFilter"><option value="">All categories</option></select>
+      <button class="go" id="searchGoBtn">Scan</button>
+    </div>
+
+    <div class="cat-strip" id="catStrip"></div>
+    <div class="grid" id="productGrid"></div>
+  </section>
+
+  <section class="block" id="view-trolley" style="display:none;">
+    <span class="eyebrow">02 — your trolley</span>
+    <h2 class="h">My Trolley</h2>
+    <p class="sub">Tap the ⊕ on any product (or "+ Trolley" inside its price list) to add it here. Skarrel groups everything by store and shows what you've saved.</p>
+
+    <div id="trolleyEmpty" class="empty">Your trolley is empty — add items from the Compare tab to get started.</div>
+
+    <div id="trolleyContent" style="display:none;">
+      <div id="trolleyList"></div>
+
+      <div class="savings-banner" id="savingsBanner"></div>
+
+      <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:19px;">Ready to checkout</h3>
+      <p class="sub" style="margin-top:4px;">No retailer currently lets Skarrel add items straight into their app's cart — that would need a direct partnership with each store. So you don't have to re-decide what to buy, each group below has a "Copy this list" button — paste it into the retailer's search bar and search each line, rather than working from memory.</p>
+      <div id="checkoutGroups"></div>
+
+      <button id="clearTrolleyBtn" style="margin-top:20px; background:transparent; border:1.5px solid var(--line); color:var(--ink); border-radius:12px; padding:9px 16px; font-weight:700; font-size:12.5px; cursor:pointer;">Clear trolley</button>
+    </div>
+  </section>
+
+  <section class="block" id="view-report" style="display:none;">
+    <span class="eyebrow">03 — your savings</span>
+    <h2 class="h">Monthly savings report</h2>
+    <p class="sub">Every item you add to your trolley gets logged here, so you can see how much Skarrel has helped you save, month by month.</p>
+
+    <div id="reportEmpty" class="empty">No savings logged yet — add items to your trolley from the Compare tab and they'll show up here.</div>
+    <div id="reportContent" style="display:none;">
+      <div id="reportMonths"></div>
+
+      <div class="share-card-wrap">
+        <h3 style="font-family:'Baloo 2',sans-serif; font-size:17px; text-align:center;">Brag a little</h3>
+        <div class="share-card" id="shareCard">
+          <div class="sc-logo">
+            <div class="sc-mark">
+              <svg width="16" height="16" viewBox="0 0 46 46" fill="none">
+                <path d="M12 32 C 15 25, 13 17, 16.5 10.5" stroke="#FBF6EA" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                <path d="M21 34 C 24.5 25.5, 21.5 16, 25 7.5" stroke="#FBF6EA" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+                <path d="M30 32 C 33 25.5, 30 18, 33 11.5" stroke="#FBF6EA" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+              </svg>
+            </div>
+            <div class="sc-name">Skarrel</div>
+          </div>
+          <div class="sc-month" id="sc-month">This month</div>
+          <div class="sc-amount" id="sc-amount">R0.00</div>
+          <div class="sc-sub" id="sc-sub">saved by shopping around</div>
+          <div class="sc-tag">here to help you save!</div>
+        </div>
+        <div class="share-actions">
+          <button id="shareCardBtn" type="button">📤 Share to WhatsApp</button>
+          <button id="downloadCardBtn" type="button" class="secondary">Save image</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="view-specials" style="display:none;">
+    <span class="eyebrow">04 — specials</span>
+    <h2 class="h">What's on promotion right now</h2>
+    <p class="sub">Pinned by verified retailers. Specials drop off the board automatically once they expire.</p>
+    <div class="cork" id="specialsBoard"></div>
+  </section>
+
+  <section class="block" id="view-submit" style="display:none;">
+    <span class="eyebrow">05 — contribute</span>
+    <h2 class="h">Seen a price? Add it.</h2>
+    <p class="sub">Since the same product can come in several brands, tell us which one you saw — that way shoppers can compare like for like, or just chase the cheapest overall. Adding something new? Skarrel sorts it into the right category for you, so you don't have to.</p>
+    <div class="submit-form" style="border-top:none; padding-top:0;">
+      <div class="frow">
+        <div class="field"><label>Browse by category</label><select id="sf-category"></select></div>
+        <div class="field"><label>Product</label><select id="sf-product"></select></div>
+      </div>
+      <div class="frow" id="sf-newProductRow" style="display:none;">
+        <div class="field"><label>New product name</label><input id="sf-newName" type="text" placeholder="e.g. Brown Bread 700g"></div>
+        <div class="field"><label>Unit / size</label><input id="sf-newUnit" type="text" placeholder="e.g. 700g"></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Brand</label><input id="sf-brand" type="text" placeholder="e.g. Clover, Crystal Valley, house brand"></div>
+        <div class="field"><label>Store</label><select id="sf-store"></select></div>
+      </div>
+      <div class="frow">
+        <div class="field"><label>Branch / location</label><select id="sf-branch"></select></div>
+        <div class="field"><label>Price (R)</label><input id="sf-price" type="number" min="0" step="0.01" placeholder="29.00"></div>
+      </div>
+      <button id="sf-submitBtn">Submit price</button>
+      <div class="toast" id="sf-toast">Price added — thanks for keeping prices honest!</div>
+    </div>
+
+    <div class="submit-form">
+      <h3 style="font-family:'Baloo 2',sans-serif; font-size:16px;">Can't find your branch or town?</h3>
+      <p class="sub" style="margin-top:4px;">Add it yourself — this grows the branch list for everyone, the same way prices do.</p>
+      <div class="frow">
+        <div class="field"><label>Store</label><select id="branch-store"></select></div>
+        <div class="field">
+          <label>Town / area</label>
+          <input id="branch-town" type="text" list="knownTownsList" placeholder="Pick or type a new town">
+          <datalist id="knownTownsList"></datalist>
+        </div>
+      </div>
+      <div class="frow">
+        <div class="field" style="flex:2;"><label>Branch name / address</label><input id="branch-address" type="text" placeholder="e.g. Checkers, Main Street Mall, Somewhere"></div>
+      </div>
+      <button id="branch-submitBtn">Add branch</button>
+      <div class="toast" id="branch-toast">Branch added — thanks for filling in the map!</div>
+    </div>
+  </section>
+
+  <section class="block" id="view-scan" style="display:none;">
+    <span class="eyebrow">06 — quick capture</span>
+    <h2 class="h">Scan your till slip</h2>
+    <p class="sub">Take a photo of your receipt after shopping — Skarrel reads the retailer, branch, date, and each item's price for you to check over before they're added.</p>
+
+    <div class="scan-drop">
+      <label class="pick-btn" for="scan-file">📷 Choose or take a photo</label>
+      <input type="file" id="scan-file" accept="image/*" capture="environment">
+      <p>JPG or PNG · your slip, your prices</p>
+      <img id="scanPreview" class="scan-preview">
+      <br>
+      <button id="scanGoBtn" class="scan-go">Read this receipt</button>
+
+      <p class="scan-or">— or, for a long receipt —</p>
+      <label class="pick-btn video-btn" for="scan-video">📹 Record a slow pan instead</label>
+      <input type="file" id="scan-video" accept="video/*" capture="environment">
+      <p>Pan slowly, top to bottom, in one steady 10–20 second take — Skarrel samples several frames and stitches the whole receipt together, so nothing gets cut off.</p>
+      <video id="scanVideoPreview" class="scan-preview" controls style="display:none;"></video>
+      <br>
+      <button id="scanVideoGoBtn" class="scan-go">Read this video</button>
+
+      <div class="scan-status" id="scanStatus">Reading your receipt…</div>
+      <div class="scan-error" id="scanError"></div>
+    </div>
+
+    <div class="scan-results" id="scanResults">
+      <div class="submit-form" style="border-top:none; padding-top:0;">
+        <div class="frow scan-meta">
+          <div class="field"><label>Retailer</label><select id="scan-store"></select></div>
+          <div class="field"><label>Branch / location</label><select id="scan-branch"></select></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>Receipt date</label><input id="scan-date" type="date"></div>
+          <div class="field"><label>Detected location text (from receipt)</label><input id="scan-locationText" type="text" placeholder="e.g. Kalahari Mall, Upington" readonly></div>
+        </div>
+        <div id="scan-newBranchPrompt" style="display:none; margin-top:12px; padding:14px 16px; background:var(--clay-soft); border-radius:14px;">
+          <p style="font-family:'Quicksand',sans-serif; font-weight:700; font-size:12px; color:var(--clay); margin:0 0 8px;">This doesn't match a branch we already know — want to add it for everyone?</p>
+          <div class="frow">
+            <div class="field"><label>Town / area name</label><input id="scan-newBranchTown" type="text" placeholder="e.g. Wolmaransstad"></div>
+          </div>
+          <button id="scan-addBranchBtn" type="button" style="margin-top:10px; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:9px 16px; font-weight:700; font-size:12.5px;">Add this branch</button>
+        </div>
+      </div>
+      <h3 style="font-family:'Baloo 2',sans-serif; font-size:15px; margin-top:16px;">Items found</h3>
+      <p style="font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.55; margin-top:2px;">Price is per unit, not the line total — double-check against the quantity shown if a line had more than one of something.</p>
+      <div id="scanRows"></div>
+      <button id="scanConfirmBtn" style="margin-top:16px; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 20px; font-weight:700; font-size:13.5px;">Confirm & add these prices</button>
+      <div class="toast" id="scan-toast">Prices added from your receipt!</div>
+    </div>
+  </section>
+
+  <section class="block" id="view-post-special">
+    <span class="eyebrow">07 — for retailers</span>
+    <h2 class="h">Post a special</h2>
+    <p class="sub">This tool is for verified retailers only, so shoppers can trust what's on the board.</p>
+
+    <div class="retailer-pitch">
+      <h3>Why retailers partner with Skarrel</h3>
+      <div class="rp-grid">
+        <div class="rp-item">
+          <div class="rp-num">01</div>
+          <div class="rp-text"><strong>Reach shoppers already comparing.</strong> Everyone browsing Skarrel is actively deciding where to buy right now — a special posted here reaches people mid-decision, not mid-scroll.</div>
+        </div>
+        <div class="rp-item">
+          <div class="rp-num">02</div>
+          <div class="rp-text"><strong>No design team, no media buying.</strong> Post a special in under a minute — store, price, branch, expiry date — and it's live on the board and on every matching product page.</div>
+        </div>
+        <div class="rp-item">
+          <div class="rp-num">03</div>
+          <div class="rp-text"><strong>A trust-verified board.</strong> Only signed-in retailers can post, so shoppers aren't wading through anonymous noise to find your real promotions.</div>
+        </div>
+      </div>
+      <p class="rp-note">Posting a special is free today. Featured placement, a full retailer dashboard, and deeper analytics are on the roadmap — see the business model notes for details.</p>
+    </div>
+
+    <div class="special-form" id="ps-gate">
+      <div class="gate-row">
+        <div class="gate-icon">
+          <svg width="14" height="14" viewBox="0 0 46 46" fill="none">
+            <path d="M12 32 C 15 25, 13 17, 16.5 10.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+            <path d="M21 34 C 24.5 25.5, 21.5 16, 25 7.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+            <path d="M30 32 C 33 25.5, 30 18, 33 11.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="gate-badge" style="margin-bottom:0;">Retailer sign-in</span>
+      </div>
+      <h3>Enter your retailer access code</h3>
+      <p class="hint">Posting is limited to verified store partners. Not signed up yet? Get in touch with the Skarrel team to become a verified retailer.</p>
+      <div class="submit-form" style="border-top:none; padding-top:14px;">
+        <div class="frow">
+          <div class="field"><label>Retailer access code</label><input id="ps-code" type="password" placeholder="Enter code"></div>
+        </div>
+        <button id="ps-unlockBtn">Unlock retailer tools</button>
+        <div class="code-error" id="ps-codeError">That code isn't valid. Contact Skarrel to get set up as a verified retailer.</div>
+      </div>
+    </div>
+
+    <div class="special-form" id="ps-formWrap" style="display:none;">
+      <span class="gate-badge">Verified retailer</span>
+      <h3>New special</h3>
+      <p class="hint">Keep it to real, current promotions — shoppers are trusting this board.</p>
+      <div class="submit-form" style="border-top:none; padding-top:14px;">
+        <div class="frow">
+          <div class="field"><label>Store</label><select id="ps-store"></select></div>
+          <div class="field"><label>Branch / location</label><select id="ps-branch"></select></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>Brand (optional)</label><input id="ps-brand" type="text" placeholder="e.g. Clover"></div>
+          <div class="field"><label>Product / description</label><input id="ps-product" type="text" placeholder="e.g. Full Cream Milk 2L"></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>Original price (R)</label><input id="ps-was" type="number" min="0" step="0.01" placeholder="32.00"></div>
+          <div class="field"><label>Special price (R)</label><input id="ps-now" type="number" min="0" step="0.01" placeholder="24.99"></div>
+          <div class="field"><label>Valid until</label><input id="ps-until" type="date"></div>
+        </div>
+        <button id="ps-submitBtn">Pin special</button>
+        <div class="toast" id="ps-toast">Special posted to the board!</div>
+      </div>
+      <div class="verified-note">✓ You're signed in as a verified retailer on this device.</div>
+    </div>
+  </section>
+
+  <section class="block" id="view-reviews" style="display:none;">
+    <span class="eyebrow">08 — feedback</span>
+    <h2 class="h">Reviews</h2>
+    <p class="sub">Tell us what's working and what isn't — this feeds straight back to the people building Skarrel.</p>
+
+    <div class="review-summary" id="reviewSummary"></div>
+
+    <div class="special-form" style="margin-top:22px;">
+      <h3 style="font-size:16px;">Leave a review</h3>
+      <div class="submit-form" style="border-top:none; padding-top:14px;">
+        <label style="font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; opacity:.6;">Your rating</label>
+        <div class="star-picker" id="starPicker">
+          <button type="button" class="star-btn" data-star="1">★</button>
+          <button type="button" class="star-btn" data-star="2">★</button>
+          <button type="button" class="star-btn" data-star="3">★</button>
+          <button type="button" class="star-btn" data-star="4">★</button>
+          <button type="button" class="star-btn" data-star="5">★</button>
+        </div>
+        <div class="frow">
+          <div class="field" style="flex:2;">
+            <label>Comment (optional)</label>
+            <input id="review-comment" type="text" placeholder="What should we improve?">
+          </div>
+        </div>
+        <button id="reviewSubmitBtn">Submit review</button>
+        <div class="toast" id="review-toast">Thanks for the feedback!</div>
+      </div>
+    </div>
+
+    <div id="reviewsEmpty" class="empty">No reviews yet — be the first to share what you think.</div>
+    <div id="reviewsList" style="margin-top:16px;"></div>
+  </section>
+
+  <section class="block" id="view-admin" style="display:none;">
+    <span class="eyebrow">09 — owner only</span>
+    <h2 class="h">Admin</h2>
+    <p class="sub">A real-data overview and basic moderation — not a full user-management system. See the note at the bottom for what this can't show you, and why.</p>
+
+    <div class="special-form" id="admin-gate">
+      <div class="gate-row">
+        <div class="gate-icon">
+          <svg width="14" height="14" viewBox="0 0 46 46" fill="none">
+            <path d="M12 32 C 15 25, 13 17, 16.5 10.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+            <path d="M21 34 C 24.5 25.5, 21.5 16, 25 7.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+            <path d="M30 32 C 33 25.5, 30 18, 33 11.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <span class="gate-badge">Owner sign-in</span>
+      </div>
+      <h3>Enter the admin access code</h3>
+      <p class="hint">Same kind of lightweight gate as the retailer sign-in — not real account security, just a deterrent against casual access.</p>
+      <div class="submit-form" style="border-top:none; padding-top:14px;">
+        <div class="frow">
+          <div class="field"><label>Admin access code</label><input id="admin-code" type="password" placeholder="Enter code"></div>
+        </div>
+        <button id="adminUnlockBtn">Unlock admin dashboard</button>
+        <div class="code-error" id="admin-codeError">That code isn't valid.</div>
+      </div>
+    </div>
+
+    <div id="admin-dashboard" style="display:none;">
+      <div class="retailer-pitch">
+        <h3>Overview</h3>
+        <div class="rp-grid" id="admin-stats"></div>
+      </div>
+
+      <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Prices</h3>
+      <p class="sub" style="margin-top:2px;">Remove anything that's wrong, spammy, or duplicated.</p>
+      <div id="admin-prices"></div>
+
+      <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Specials</h3>
+      <div id="admin-specials"></div>
+
+      <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Reviews</h3>
+      <div id="admin-reviews"></div>
+
+      <p class="lb-fine-print" style="margin-top:24px;">
+        What this can't show you: who's signed up, their names or emails, or their individual trolleys and savings — that data lives privately on each person's own device by design, and never touches shared storage, so it isn't something an admin view can read even in principle. What you see above is everything that's actually shared across all users: prices, specials, and reviews. A full user-management system (accounts, bans, real analytics) would need a real backend — this is the honest ceiling of what's buildable on top of the current setup.
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<div class="overlay" id="signupOverlay" style="display:none;">
+  <div class="signup-box">
+    <button class="su-close" id="signupCloseBtn">✕</button>
+    <div class="su-icon">
+      <svg width="20" height="20" viewBox="0 0 46 46" fill="none">
+        <path d="M12 32 C 15 25, 13 17, 16.5 10.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <path d="M21 34 C 24.5 25.5, 21.5 16, 25 7.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <path d="M30 32 C 33 25.5, 30 18, 33 11.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+
+    <div id="authLoginView">
+      <h2>Welcome back</h2>
+      <p class="sub">Log in to start comparing, saving, and tracking what you've saved.</p>
+      <label>Email</label>
+      <input id="login-email" type="email" placeholder="you@example.com">
+      <label>Password</label>
+      <input id="login-password" type="password" placeholder="Your password">
+      <div class="su-error" id="authLoginError"></div>
+      <button class="su-submit" id="authLoginBtn">Log in</button>
+      <div class="su-links">
+        <button type="button" id="goToSignupBtn">New here? Create an account</button>
+      </div>
+    </div>
+
+    <div id="authSignupView" style="display:none;">
+      <h2>Welcome to Skarrel</h2>
+      <p class="sub">Sign up with your email to start comparing, saving, and tracking what you've saved.</p>
+      <label>Your name</label>
+      <input id="signup-name" type="text" placeholder="e.g. Renier">
+      <label>Email</label>
+      <input id="signup-email" type="email" placeholder="you@example.com">
+      <label>Password</label>
+      <input id="signup-password" type="password" placeholder="At least 6 characters">
+      <div class="su-error" id="authSignupError"></div>
+      <button class="su-submit" id="authSignupBtn">Create account</button>
+      <div class="su-links">
+        <button type="button" id="goToLoginBtn">Already have an account? Log in</button>
+      </div>
+    </div>
+
+    <div id="authAccountView" style="display:none;">
+      <h2>Your account</h2>
+      <p class="sub" id="authAccountSub"></p>
+      <button class="su-submit" id="authSignOutBtn" style="background:var(--clay);">Sign out</button>
+    </div>
   </div>
 </div>
 
-<div id="buildTag">build: diag-v3</div>
+<div class="overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="close" id="modalClose">✕</button>
+    <div class="modal-head-row">
+      <div class="modal-icon" id="m-icon"></div>
+      <div>
+        <div class="m-cat" id="m-cat"></div>
+        <h2 id="m-name"></h2>
+        <div class="m-unit" id="m-unit"></div>
+      </div>
+    </div>
+    <div id="m-special-note"></div>
+    <div class="m-filter">
+      <label>Area</label>
+      <select id="m-location-filter"></select>
+      <label>Brand</label>
+      <select id="m-brand-filter"></select>
+    </div>
+    <p id="m-loc-fallback-note" style="display:none; font-family:'Caveat',cursive; font-weight:700; font-size:15px; color:var(--clay); margin-top:8px;"></p>
+    <p style="font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.55; margin-top:10px;">👍 confirm a price that's still right, 🚩 report one that's wrong — enough reports flags it as disputed. Prices unconfirmed for 3+ weeks are marked as possibly outdated.</p>
+    <div class="price-list" id="m-rows"></div>
+    <div class="loc-note" id="m-loc-note"></div>
+  </div>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<footer>
+  <p>SKARREL · PRICES SUBMITTED BY SHOPPERS · SPECIALS POSTED BY VERIFIED RETAILERS · BRANCH LOCATIONS SOURCED FROM PUBLIC MAP LISTINGS — ALWAYS CONFIRM AT TILL</p>
+</footer>
+
 <script>
-  const $ = (id) => document.getElementById(id);
-  const connEl = $('connCheck');
+(function(){
+  const STORES = ["Woolworths","Checkers","Pick n Pay","Shoprite","SPAR","Food Lover's Market"];
+  const DELIVERY_LINKS = {
+    "Woolworths": "https://www.woolworths.co.za/",
+    "Checkers": "https://www.sixty60.co.za/",
+    "Pick n Pay": "https://www.pnp.co.za/",
+    "Shoprite": "https://www.shoprite.co.za/",
+    "SPAR": "https://www.spar2u.co.za/",
+    "Food Lover's Market": "https://www.foodloversmarket.co.za/"
+  };
 
-  function setConn(msg, state){
-    connEl.textContent = msg;
-    connEl.className = state;
+  const LOCATIONS = ["All areas","Upington","Kimberley","Cape Town","Johannesburg","Pretoria","Durban","Gqeberha","Bloemfontein","Nelspruit","Polokwane","Rustenburg","East London","Pietermaritzburg","George","Welkom","Klerksdorp","Paarl","Richards Bay","Witbank","Newcastle","Kathu"];
+
+  // Approximate town-centre coordinates, used only to match a detected GPS position to the nearest covered town.
+  const TOWN_COORDS = {
+    "Upington":{lat:-28.4478,lng:21.2561}, "Kimberley":{lat:-28.7282,lng:24.7499},
+    "Cape Town":{lat:-33.9249,lng:18.4241}, "Johannesburg":{lat:-26.2041,lng:28.0473},
+    "Pretoria":{lat:-25.7479,lng:28.2293}, "Durban":{lat:-29.8587,lng:31.0218},
+    "Gqeberha":{lat:-33.9608,lng:25.6022}, "Bloemfontein":{lat:-29.0852,lng:26.1596},
+    "Nelspruit":{lat:-25.4753,lng:30.9694}, "Polokwane":{lat:-23.9045,lng:29.4689},
+    "Rustenburg":{lat:-25.6672,lng:27.2424}, "East London":{lat:-33.0153,lng:27.9116},
+    "Pietermaritzburg":{lat:-29.6006,lng:30.3794}, "George":{lat:-33.9630,lng:22.4617},
+    "Welkom":{lat:-27.9767,lng:26.7311},
+    "Klerksdorp":{lat:-26.8499,lng:26.7032}, "Paarl":{lat:-33.7668,lng:18.9661},
+    "Richards Bay":{lat:-28.7556,lng:32.0488}, "Witbank":{lat:-25.8881,lng:29.2657},
+    "Newcastle":{lat:-27.7430,lng:29.9345},
+    "Kathu":{lat:-27.6989,lng:23.0453}
+  };
+
+  // A lightweight client-side gate — not real authentication. See chat notes.
+  const RETAILER_CODE = "PARTNER2026";
+  const ADMIN_CODE = "OWNER2026";
+
+  const BRANCHES = {
+    "Woolworths": {
+      "Upington":["Kalahari Mall, 1 Doctor Nelson Mandela Dr, Upington"],
+      "Kimberley":["North Cape Mall, 62 Memorial Rd, Royldene, Kimberley"],
+      "Cape Town":["V&A Waterfront, Breakwater Boulevard, Cape Town"],
+      "Johannesburg":["Sandton City, 79 Rivonia Rd, Sandhurst, Johannesburg"],
+      "Pretoria":["Menlyn Park, Atterbury Rd, Menlyn, Pretoria"],
+      "Durban":["Gateway Theatre of Shopping, 1 Palm Blvd, Umhlanga"],
+      "Gqeberha":["Baywest Mall, Baywest Boulevard, Walker Dr, Gqeberha"],
+      "Bloemfontein":["Mimosa Mall, 131 Kellner St, Brandwag, Bloemfontein"],
+      "Nelspruit":["Riverside Mall, Madiba Dr, Mbombela"],
+      "Polokwane":["Mall of the North, R81, Polokwane"],
+      "Rustenburg":["Waterfall Mall, Augrabies Ave & Waterberg St, Cashan, Rustenburg"],
+      "East London":["Hemingways Mall, Cnr N2 & Western Ave & Two Rivers Dr, Ocean View, East London"],
+      "Pietermaritzburg":["Midlands Mall, 50 Sanctuary Rd, Chasedene, Pietermaritzburg"],
+      "George":["Garden Route Mall, Cnr N2 & N12, George"],
+      "Welkom":["Goldfields Mall, Cnr Stateway & Buiten St, Welkom Central, Welkom"],
+      "Klerksdorp":["Shop 24, Matlosana Mall, N12, Klerksdorp"],
+      "Paarl":["Shop 43, Paarl Mall, New Eksdale St, Southern Paarl, Paarl"],
+      "Richards Bay":["Shop U31, Boardwalk Inkwazi Shopping Centre, 11 Mark Strasse, Richards Bay"],
+      "Witbank":["Shop 18, Highveld Mall, Cnr N4 & Mandela St, eMalahleni"],
+      "Newcastle":["Shop 4, Amajuba Mall, Cnr Victoria & Allen St, Hutten Heights, Newcastle"],
+      "Kathu":["Kathu Village Shopping Mall, Hendrik Van Eck Rd, Kathu"]
+    },
+    "Checkers": {
+      "Upington":["Checkers Upington, Cnr Scott & Rivier St, Upington","Checkers Kalahari Mall, Cnr Van Riebeeck St & Dr Nelson Mandela Dr, Upington"],
+      "Kimberley":["New Park Shopping Centre, Cnr Bultfontein & Long St, Kimberley"],
+      "Cape Town":["Willowbridge Village, Old Oak Rd & Carl Cronje Dr, Bellville, Cape Town"],
+      "Johannesburg":["Hyde Park Corner, Jan Smuts Ave, Sandton"],
+      "Pretoria":["Brooklyn Mall, Cnr Fehrsen & Middel St, Nieuw Muckleneuk, Pretoria"],
+      "Durban":["Musgrave Centre, 115 Musgrave Rd, Berea, Durban"],
+      "Gqeberha":["6th Ave Centre, Walmer, Gqeberha"],
+      "Bloemfontein":["Loch Logan Waterfront, Bloemfontein"],
+      "Nelspruit":["Riverside Mall, 215 White River Rd, Mbombela"],
+      "Polokwane":["Savannah Mall, Thabo Mbeki St, Fauna Park, Polokwane"],
+      "Rustenburg":["Checkers Hyper Rustenburg, Platinum Square Mall, 74 Gareth Roberts Ave, Cashan, Rustenburg"],
+      "East London":["Checkers Nahoon, Old Transkei Rd, Nahoon, East London"],
+      "Pietermaritzburg":["Checkers Hyper Brookside, Cnr Gumtree & Willow Rds, Brookside Mall, Pietermaritzburg"],
+      "George":["Checkers St Georges Square, Cnr Knysna Way & Derde St, Eastern Ext, George"],
+      "Welkom":["Cnr Stateway & Arrarat St, Welkom Central, Welkom"],
+      "Klerksdorp":["Checkers Hyper Klerksdorp, Cnr Church St & Margaretha Prinsloo St, Neserhof, Klerksdorp"],
+      "Paarl":["Checkers Hyper Paarl Junction, Winelands Square, Cnr Sandwyk St & Old Paarl Rd, Paarl"],
+      "Richards Bay":["Checkers Boardwalk, Inkwazi Shopping Centre, Richards Bay"],
+      "Witbank":["Checkers Hyper Klipfontein, Del Judor Mall, Watermeyer St, eMalahleni"],
+      "Newcastle":["24 Victoria Rd, Hutten Heights, Newcastle"],
+      "Kathu":["Frikkie Meyer St, Kathu"]
+    },
+    "Pick n Pay": {
+      "Upington":["Kalahari Shopping Centre, Rivier St, Upington"],
+      "Kimberley":["Sydney Streets, Lennox St, Kimberley"],
+      "Cape Town":["Campground Rd, Claremont, Cape Town"],
+      "Johannesburg":["The Mall of Rosebank, Bath Ave, Rosebank, Johannesburg"],
+      "Pretoria":["Hatfield Plaza, Burnett St, Hatfield, Pretoria"],
+      "Durban":["Pavilion Shopping Centre, Jack Martens Dr, Dawncliffe, Durban"],
+      "Gqeberha":["Sanlam Centre, 4th Ave, Newton Park, Gqeberha"],
+      "Bloemfontein":["Northridge Mall, Kenneth Kaunda Rd, Helicon Heights, Bloemfontein"],
+      "Nelspruit":["The Crossing, Cnr Samora Machel Dr & Madiba Dr, Mbombela"],
+      "Polokwane":["139 The Crescent Dr, Tagore St, Polokwane Ext 27, Polokwane"],
+      "Rustenburg":["Platinum Shopping Centre, Beyers Naude Dr, Rustenburg"],
+      "East London":["215 Oxford St, Southernwood, East London"],
+      "Pietermaritzburg":["Hayfields Mall, Cleland Rd, Hayfields, Pietermaritzburg"],
+      "George":["Pre-Cap Centre, 28 Courtenay St, Bodorp, George"],
+      "Welkom":["61 Bok St, Welkom Central, Welkom"],
+      "Klerksdorp":["Pick n Pay Hypermarket, Buffelsdoorn Rd, Wilkoppies, Klerksdorp"],
+      "Paarl":["Shop 9, Paarl Mall, Jones St, Southern Paarl, Paarl"],
+      "Richards Bay":["Shop 6, Boardwalk Inkwazi Shopping Centre, Penny Ln, Richards Bay"],
+      "Witbank":["Pick n Pay Hypermarket, Watermeyer St, eMalahleni"],
+      "Newcastle":["29 Gemsbok Ave, Hutten Heights, Newcastle"],
+      "Kathu":["Rooisand St, Kathu"]
+    },
+    "Shoprite": {
+      "Upington":["Cnr Scott & Basson St, Upington"],
+      "Kimberley":["Cnr Sidney Eden & Bultfontein St, Kimberley"],
+      "Cape Town":["147 Voortrekker Rd, Bellville, Cape Town"],
+      "Johannesburg":["Cnr Rifle Range Rd & Columbine Ave, Southgate, Johannesburg"],
+      "Pretoria":["Sunnypark Centre, Cnr Greeff & Robert Sobukwe St, Trevenna, Pretoria"],
+      "Durban":["249 King Dinuzulu Rd South, Bulwer, Durban"],
+      "Gqeberha":["Greenacres Shopping Centre, 1 Ring Rd, Greenacres, Gqeberha"],
+      "Bloemfontein":["Middestad Centre (basement), Bloemfontein Central"],
+      "Nelspruit":["Sanlam Centre, Samora Machel Dr & Bell St, Mbombela"],
+      "Polokwane":["Savannah Mall, Thabo Mbeki St & Grimm St, Fauna Park, Polokwane"],
+      "Rustenburg":["Shoprite Centre, Cnr Thabo Mbeki & Nelson Mandela St, Rustenburg"],
+      "East London":["Cnr Caxton & Buffalo St, East London CBD"],
+      "Pietermaritzburg":["361 Church St, Pietermaritzburg"],
+      "George":["Van der Stel Square, 80 Market St, George Central, George"],
+      "Welkom":["Cnr Karoo & Bok St, Welkom Central, Welkom"],
+      "Klerksdorp":["Shoprite Klerksdorp Terminus, Cnr Commissioner & Golf St, Klerksdorp Central"],
+      "Paarl":["Boulevard Cnr Berg River Blvd & Van Der Lingen, Esterville, Paarl"],
+      "Richards Bay":["Bullion Blvd & Krugerrand, Richards Bay"],
+      "Witbank":["Emalahleni Shopping Centre, Cnr Roger St & Eadie St, eMalahleni"],
+      "Newcastle":["Shoprite Hyper, 22 Ayliff St, Newcastle CBD"],
+      "Kathu":["Cnr Ben Alberts & Rietbok St, Kathu"]
+    },
+    "SPAR": {
+      "Upington":["SUPERSPAR Kalahari, Shop 33, Kalahari Mall, Van Riebeeck St, Upington","SPAR River City, 26 Scott St, Upington"],
+      "Kimberley":["Monument SUPERSPAR, Memorial Rd & Mac Dougall St, Kimberley"],
+      "Cape Town":["Gardens Centre, Buitenkant St, Gardens, Cape Town"],
+      "Johannesburg":["SPAR Parkview, 58 Tyrone Ave, Parkview, Randburg"],
+      "Pretoria":["Waterkloof SPAR, Main St & Crown St, Waterkloof, Pretoria"],
+      "Durban":["SUPERSPAR Village Mall, 33 Village Rd, Kloof"],
+      "Gqeberha":["OUR SUPERSPAR, 130 Main Rd, Walmer, Gqeberha"],
+      "Bloemfontein":["KWIKSPAR Gardenia, 5 Jasmyn Ave, Gardenia Park, Bloemfontein"],
+      "Nelspruit":["Nelacres KwikSpar, 37 Figtree St, West Acres, Mbombela"],
+      "Polokwane":["SPAR Platinum Park, Cnr General Maritz & Outspan Dr, Bendor, Polokwane"],
+      "Rustenburg":["SUPERSPAR Rustenburg Square, Von Wielligh St, Rustenburg"],
+      "East London":["SUPERSPAR Southernwood, St Georges Rd, Southernwood, East London"],
+      "Pietermaritzburg":["SUPERSPAR Northway, Northway Mall, 20 Otto's Blf Sta, Woodlands, Pietermaritzburg"],
+      "George":["SUPERSPAR Outeniqua Lifestyle Centre, Cnr St George's & Park Rd, George"],
+      "Welkom":["SUPERSPAR Sylvania, 133 Koppie Alleen Rd, Jan Cilliers Park, Welkom"],
+      "Klerksdorp":["SUPERSPAR MCC, MCC Shopping Centre, Central Ave, Flamwood, Klerksdorp"],
+      "Paarl":["SUPERSPAR Paarl East, Cnr Van Der Stel St & Broadway, Charleston Hill, Paarl"],
+      "Richards Bay":["SUPERSPAR Town Square, 34 Bullion Blvd, Richards Bay"],
+      "Witbank":["SPAR Emalahleni, Colliery St, eMalahleni"],
+      "Newcastle":["SUPERSPAR Henry's, Newcastle Corner, Memel Rd, Hutten Heights, Newcastle"],
+      "Kathu":["SUPERSPAR Kathu, Shop 30, Cnr Deben & Hendrik Van Eck Rd, Kathu"]
+    },
+    "Food Lover's Market": {
+      "Upington":["Basson St, Upington"],
+      "Kimberley":["Diamond Pavilion Mall, Cruikshank St, Kimberley"],
+      "Cape Town":["Shop 5, Tokai on Main, Main Rd, Dreyersdal, Cape Town"],
+      "Johannesburg":["Fourways Mall, Cedar Rd, Witkoppen, Sandton"],
+      "Pretoria":["Woestyn Close, Montana Tuine, Pretoria"],
+      "Durban":["Musgrave Rd, Berea, Durban"],
+      "Gqeberha":["Shop 1, Moffett Retail Park, William Moffett Expy, Fairview, Gqeberha"],
+      "Bloemfontein":["Showgate Centre, Curie Ave, Generaal De Wet, Bloemfontein"],
+      "Nelspruit":["Andrew St, Mbombela"],
+      "Polokwane":["The Farmyard, Buzworx Ave, Polokwane"],
+      "Rustenburg":["Shop 15, Cornerstone Lifestyle Centre, Faisal Mafa Dr, Cashan, Rustenburg"],
+      "East London":["Balfour Park Shopping Centre, Balfour Rd, Vincent, East London"],
+      "George":["Garden Route Mall, Park Rd, George"],
+      "Klerksdorp":["Flamwood Quarter, 16 Central Ave, Irenepark, Klerksdorp"],
+      "Paarl":["Cecilia St, Southern Paarl, Paarl"],
+      "Richards Bay":["Shop L84, Mark Strasse, Richards Bay"],
+      "Witbank":["Jeanette St, Zeekoewater, eMalahleni"],
+      "Newcastle":["Cnr Voortrekker St & Murchison St, Newcastle CBD"],
+      "Kathu":["Shop 29, Hendrik Van Eck Rd, Kathu"]
+    }
+  };
+
+
+  const CATEGORIES = [
+    "Dairy & Eggs","Bakery","Meat & Poultry","Fruit & Veg","Pantry & Groceries",
+    "Frozen","Beverages","Snacks & Confectionery","Household & Cleaning",
+    "Personal Care","Baby","Pet","Condiments & Sauces","Health & Wellness"
+  ];
+
+  const DEFAULT_PRODUCTS = [
+    {id:"p1", name:"Full Cream Milk 2L", unit:"2L", category:"Dairy & Eggs"},
+    {id:"p2", name:"Low Fat Milk 2L", unit:"2L", category:"Dairy & Eggs"},
+    {id:"p3", name:"Long Life Milk 1L", unit:"1L", category:"Dairy & Eggs"},
+    {id:"p4", name:"Plain Yoghurt 1kg", unit:"1kg", category:"Dairy & Eggs"},
+    {id:"p5", name:"Cheddar Cheese 400g", unit:"400g", category:"Dairy & Eggs"},
+    {id:"p6", name:"Butter 500g", unit:"500g", category:"Dairy & Eggs"},
+    {id:"p7", name:"Margarine 500g", unit:"500g", category:"Dairy & Eggs"},
+    {id:"p8", name:"Free Range Eggs (18)", unit:"18 eggs", category:"Dairy & Eggs"},
+    {id:"p9", name:"Eggs (6)", unit:"6 eggs", category:"Dairy & Eggs"},
+    {id:"p10", name:"Fresh Cream 250ml", unit:"250ml", category:"Dairy & Eggs"},
+    {id:"p11", name:"White Bread 700g", unit:"700g", category:"Bakery"},
+    {id:"p12", name:"Brown Bread 700g", unit:"700g", category:"Bakery"},
+    {id:"p13", name:"Whole Wheat Bread 700g", unit:"700g", category:"Bakery"},
+    {id:"p14", name:"Bread Rolls (6)", unit:"6 rolls", category:"Bakery"},
+    {id:"p15", name:"Rusks 500g", unit:"500g", category:"Bakery"},
+    {id:"p16", name:"Muffins (4 pack)", unit:"4 pack", category:"Bakery"},
+    {id:"p17", name:"Beef Mince 1kg", unit:"1kg", category:"Meat & Poultry"},
+    {id:"p18", name:"Chicken Portions 1kg", unit:"1kg", category:"Meat & Poultry"},
+    {id:"p19", name:"Whole Chicken 1.5kg", unit:"1.5kg", category:"Meat & Poultry"},
+    {id:"p20", name:"Boerewors 1kg", unit:"1kg", category:"Meat & Poultry"},
+    {id:"p21", name:"Pork Chops 1kg", unit:"1kg", category:"Meat & Poultry"},
+    {id:"p22", name:"Bacon 250g", unit:"250g", category:"Meat & Poultry"},
+    {id:"p23", name:"Lamb Chops 1kg", unit:"1kg", category:"Meat & Poultry"},
+    {id:"p24", name:"Chicken Braai Packs 1kg", unit:"1kg", category:"Meat & Poultry"},
+    {id:"p25", name:"Potatoes 2kg", unit:"2kg", category:"Fruit & Veg"},
+    {id:"p26", name:"Onions 2kg", unit:"2kg", category:"Fruit & Veg"},
+    {id:"p27", name:"Tomatoes 1kg", unit:"1kg", category:"Fruit & Veg"},
+    {id:"p28", name:"Bananas 1kg", unit:"1kg", category:"Fruit & Veg"},
+    {id:"p29", name:"Apples 1kg", unit:"1kg", category:"Fruit & Veg"},
+    {id:"p30", name:"Oranges 1kg", unit:"1kg", category:"Fruit & Veg"},
+    {id:"p31", name:"Butternut 1kg", unit:"1kg", category:"Fruit & Veg"},
+    {id:"p32", name:"Spinach Bunch", unit:"bunch", category:"Fruit & Veg"},
+    {id:"p33", name:"Carrots 1kg", unit:"1kg", category:"Fruit & Veg"},
+    {id:"p34", name:"Avocados (4)", unit:"4 pack", category:"Fruit & Veg"},
+    {id:"p35", name:"Sunflower Oil 2L", unit:"2L", category:"Pantry & Groceries"},
+    {id:"p36", name:"White Sugar 2.5kg", unit:"2.5kg", category:"Pantry & Groceries"},
+    {id:"p37", name:"Brown Sugar 1kg", unit:"1kg", category:"Pantry & Groceries"},
+    {id:"p38", name:"Rice 2kg", unit:"2kg", category:"Pantry & Groceries"},
+    {id:"p39", name:"Cake Flour 2.5kg", unit:"2.5kg", category:"Pantry & Groceries"},
+    {id:"p40", name:"Self-Raising Flour 2.5kg", unit:"2.5kg", category:"Pantry & Groceries"},
+    {id:"p41", name:"Salt 1kg", unit:"1kg", category:"Pantry & Groceries"},
+    {id:"p42", name:"Mielie Meal 5kg", unit:"5kg", category:"Pantry & Groceries"},
+    {id:"p43", name:"Peanut Butter 400g", unit:"400g", category:"Pantry & Groceries"},
+    {id:"p44", name:"Jam 450g", unit:"450g", category:"Pantry & Groceries"},
+    {id:"p45", name:"Tinned Tomatoes 410g", unit:"410g", category:"Pantry & Groceries"},
+    {id:"p46", name:"Baked Beans 410g", unit:"410g", category:"Pantry & Groceries"},
+    {id:"p47", name:"Pasta 500g", unit:"500g", category:"Pantry & Groceries"},
+    {id:"p48", name:"Instant Noodles (5 pack)", unit:"5 pack", category:"Pantry & Groceries"},
+    {id:"p49", name:"Stock Cubes (24)", unit:"24 cubes", category:"Pantry & Groceries"},
+    {id:"p50", name:"Frozen Chips 1kg", unit:"1kg", category:"Frozen"},
+    {id:"p51", name:"Frozen Mixed Veg 1kg", unit:"1kg", category:"Frozen"},
+    {id:"p52", name:"Ice Cream 2L", unit:"2L", category:"Frozen"},
+    {id:"p53", name:"Frozen Fish Fillets 400g", unit:"400g", category:"Frozen"},
+    {id:"p54", name:"Frozen Pizza", unit:"each", category:"Frozen"},
+    {id:"p55", name:"Rooibos Tea (80 bags)", unit:"80 bags", category:"Beverages"},
+    {id:"p56", name:"Instant Coffee 200g", unit:"200g", category:"Beverages"},
+    {id:"p57", name:"Fruit Juice 1L", unit:"1L", category:"Beverages"},
+    {id:"p58", name:"Cola 2L", unit:"2L", category:"Beverages"},
+    {id:"p59", name:"Bottled Water 5L", unit:"5L", category:"Beverages"},
+    {id:"p60", name:"Potato Chips 125g", unit:"125g", category:"Snacks & Confectionery"},
+    {id:"p61", name:"Chocolate Slab 80g", unit:"80g", category:"Snacks & Confectionery"},
+    {id:"p62", name:"Biscuits 200g", unit:"200g", category:"Snacks & Confectionery"},
+    {id:"p63", name:"Popcorn 100g", unit:"100g", category:"Snacks & Confectionery"},
+    {id:"p64", name:"Dishwashing Liquid 750ml", unit:"750ml", category:"Household & Cleaning"},
+    {id:"p65", name:"Washing Powder 2kg", unit:"2kg", category:"Household & Cleaning"},
+    {id:"p66", name:"Toilet Paper (9 pack)", unit:"9 pack", category:"Household & Cleaning"},
+    {id:"p67", name:"Bleach 750ml", unit:"750ml", category:"Household & Cleaning"},
+    {id:"p68", name:"Refuse Bags (20)", unit:"20 bags", category:"Household & Cleaning"},
+    {id:"p69", name:"All-Purpose Cleaner 750ml", unit:"750ml", category:"Household & Cleaning"},
+    {id:"p70", name:"Toothpaste 100ml", unit:"100ml", category:"Personal Care"},
+    {id:"p71", name:"Shampoo 400ml", unit:"400ml", category:"Personal Care"},
+    {id:"p72", name:"Bar Soap", unit:"each", category:"Personal Care"},
+    {id:"p73", name:"Roll-on Deodorant", unit:"each", category:"Personal Care"},
+    {id:"p74", name:"Sanitary Pads (10)", unit:"10 pack", category:"Personal Care"},
+    {id:"p75", name:"Baby Nappies Size 4 (50)", unit:"50 pack", category:"Baby"},
+    {id:"p76", name:"Baby Formula 400g", unit:"400g", category:"Baby"},
+    {id:"p77", name:"Baby Wipes (80)", unit:"80 pack", category:"Baby"},
+    {id:"p78", name:"Dog Food 2kg", unit:"2kg", category:"Pet"},
+    {id:"p79", name:"Cat Food 1.5kg", unit:"1.5kg", category:"Pet"},
+    {id:"p80", name:"Sour Cream 250g", unit:"250g", category:"Dairy & Eggs"},
+    {id:"p81", name:"Cottage Cheese 250g", unit:"250g", category:"Dairy & Eggs"},
+    {id:"p82", name:"Mozzarella Cheese 400g", unit:"400g", category:"Dairy & Eggs"},
+    {id:"p83", name:"Parmesan Cheese 100g", unit:"100g", category:"Dairy & Eggs"},
+    {id:"p84", name:"Custard 1L", unit:"1L", category:"Dairy & Eggs"},
+    {id:"p85", name:"Ghee 400g", unit:"400g", category:"Dairy & Eggs"},
+    {id:"p86", name:"Croissants (4 pack)", unit:"4 pack", category:"Bakery"},
+    {id:"p87", name:"Ciabatta Loaf", unit:"each", category:"Bakery"},
+    {id:"p88", name:"Hot Cross Buns (6)", unit:"6 pack", category:"Bakery"},
+    {id:"p89", name:"Pita Bread (6)", unit:"6 pack", category:"Bakery"},
+    {id:"p90", name:"Bagels (4 pack)", unit:"4 pack", category:"Bakery"},
+    {id:"p91", name:"Chicken Livers 500g", unit:"500g", category:"Meat & Poultry"},
+    {id:"p92", name:"Beef Steak 500g", unit:"500g", category:"Meat & Poultry"},
+    {id:"p93", name:"T-Bone Steak 1kg", unit:"1kg", category:"Meat & Poultry"},
+    {id:"p94", name:"Chicken Wings 1kg", unit:"1kg", category:"Meat & Poultry"},
+    {id:"p95", name:"Pork Sausages 500g", unit:"500g", category:"Meat & Poultry"},
+    {id:"p96", name:"Biltong 250g", unit:"250g", category:"Meat & Poultry"},
+    {id:"p97", name:"Lemons 1kg", unit:"1kg", category:"Fruit & Veg"},
+    {id:"p98", name:"Grapes 500g", unit:"500g", category:"Fruit & Veg"},
+    {id:"p99", name:"Pears 1kg", unit:"1kg", category:"Fruit & Veg"},
+    {id:"p100", name:"Watermelon", unit:"each", category:"Fruit & Veg"},
+    {id:"p101", name:"Pineapple", unit:"each", category:"Fruit & Veg"},
+    {id:"p102", name:"Cucumber", unit:"each", category:"Fruit & Veg"},
+    {id:"p103", name:"Green Beans 500g", unit:"500g", category:"Fruit & Veg"},
+    {id:"p104", name:"Broccoli", unit:"each", category:"Fruit & Veg"},
+    {id:"p105", name:"Cauliflower", unit:"each", category:"Fruit & Veg"},
+    {id:"p106", name:"Sweet Potatoes 1kg", unit:"1kg", category:"Fruit & Veg"},
+    {id:"p107", name:"Garlic (bag)", unit:"bag", category:"Fruit & Veg"},
+    {id:"p108", name:"Mushrooms 250g", unit:"250g", category:"Fruit & Veg"},
+    {id:"p109", name:"Instant Oats 1kg", unit:"1kg", category:"Pantry & Groceries"},
+    {id:"p110", name:"Tomato & Onion Mix 410g", unit:"410g", category:"Pantry & Groceries"},
+    {id:"p111", name:"Pilchards in Tomato Sauce 400g", unit:"400g", category:"Pantry & Groceries"},
+    {id:"p112", name:"Bovril 250g", unit:"250g", category:"Pantry & Groceries"},
+    {id:"p113", name:"Lentils 500g", unit:"500g", category:"Pantry & Groceries"},
+    {id:"p114", name:"Chickpeas 410g", unit:"410g", category:"Pantry & Groceries"},
+    {id:"p115", name:"Samp 1kg", unit:"1kg", category:"Pantry & Groceries"},
+    {id:"p116", name:"Custard Powder 300g", unit:"300g", category:"Pantry & Groceries"},
+    {id:"p117", name:"Baking Powder 100g", unit:"100g", category:"Pantry & Groceries"},
+    {id:"p118", name:"Bicarbonate of Soda 200g", unit:"200g", category:"Pantry & Groceries"},
+    {id:"p119", name:"Vanilla Essence 100ml", unit:"100ml", category:"Pantry & Groceries"},
+    {id:"p120", name:"Honey 500g", unit:"500g", category:"Pantry & Groceries"},
+    {id:"p121", name:"Frozen Peas 1kg", unit:"1kg", category:"Frozen"},
+    {id:"p122", name:"Frozen Mixed Berries 500g", unit:"500g", category:"Frozen"},
+    {id:"p123", name:"Frozen Samoosas (20)", unit:"20 pack", category:"Frozen"},
+    {id:"p124", name:"Frozen Spring Rolls (10)", unit:"10 pack", category:"Frozen"},
+    {id:"p125", name:"Ice Lollies (10)", unit:"10 pack", category:"Frozen"},
+    {id:"p126", name:"Long Life Fruit Juice 1L", unit:"1L", category:"Beverages"},
+    {id:"p127", name:"Sports Drink 500ml", unit:"500ml", category:"Beverages"},
+    {id:"p128", name:"Energy Drink 500ml", unit:"500ml", category:"Beverages"},
+    {id:"p129", name:"Sparkling Water 1.5L", unit:"1.5L", category:"Beverages"},
+    {id:"p130", name:"Hot Chocolate 400g", unit:"400g", category:"Beverages"},
+    {id:"p131", name:"Salted Peanuts 250g", unit:"250g", category:"Snacks & Confectionery"},
+    {id:"p132", name:"Marshmallows 200g", unit:"200g", category:"Snacks & Confectionery"},
+    {id:"p133", name:"Ice Cream Cones (12)", unit:"12 pack", category:"Snacks & Confectionery"},
+    {id:"p134", name:"Wafers 200g", unit:"200g", category:"Snacks & Confectionery"},
+    {id:"p135", name:"Pretzels 150g", unit:"150g", category:"Snacks & Confectionery"},
+    {id:"p136", name:"Fabric Softener 2L", unit:"2L", category:"Household & Cleaning"},
+    {id:"p137", name:"Multi-Surface Wipes (80)", unit:"80 pack", category:"Household & Cleaning"},
+    {id:"p138", name:"Air Freshener 300ml", unit:"300ml", category:"Household & Cleaning"},
+    {id:"p139", name:"Kitchen Sponges (5)", unit:"5 pack", category:"Household & Cleaning"},
+    {id:"p140", name:"Paper Towels (2 roll)", unit:"2 roll", category:"Household & Cleaning"},
+    {id:"p141", name:"Firelighters (24)", unit:"24 pack", category:"Household & Cleaning"},
+    {id:"p142", name:"Conditioner 400ml", unit:"400ml", category:"Personal Care"},
+    {id:"p143", name:"Hand Sanitizer 250ml", unit:"250ml", category:"Personal Care"},
+    {id:"p144", name:"Disposable Razors (5)", unit:"5 pack", category:"Personal Care"},
+    {id:"p145", name:"Cotton Wool 100g", unit:"100g", category:"Personal Care"},
+    {id:"p146", name:"Body Lotion 400ml", unit:"400ml", category:"Personal Care"},
+    {id:"p147", name:"Face Wash 150ml", unit:"150ml", category:"Personal Care"},
+    {id:"p148", name:"Baby Food Jars (4 pack)", unit:"4 pack", category:"Baby"},
+    {id:"p149", name:"Baby Bath 400ml", unit:"400ml", category:"Baby"},
+    {id:"p150", name:"Baby Powder 200g", unit:"200g", category:"Baby"},
+    {id:"p151", name:"Dummies (2 pack)", unit:"2 pack", category:"Baby"},
+    {id:"p152", name:"Cat Litter 5kg", unit:"5kg", category:"Pet"},
+    {id:"p153", name:"Bird Seed 1kg", unit:"1kg", category:"Pet"},
+    {id:"p154", name:"Dog Treats 200g", unit:"200g", category:"Pet"},
+    {id:"p155", name:"Tomato Sauce 700ml", unit:"700ml", category:"Condiments & Sauces"},
+    {id:"p156", name:"Mayonnaise 700ml", unit:"700ml", category:"Condiments & Sauces"},
+    {id:"p157", name:"Mustard 250g", unit:"250g", category:"Condiments & Sauces"},
+    {id:"p158", name:"Chutney 470g", unit:"470g", category:"Condiments & Sauces"},
+    {id:"p159", name:"Spirit Vinegar 750ml", unit:"750ml", category:"Condiments & Sauces"},
+    {id:"p160", name:"Soy Sauce 250ml", unit:"250ml", category:"Condiments & Sauces"},
+    {id:"p161", name:"Worcester Sauce 250ml", unit:"250ml", category:"Condiments & Sauces"},
+    {id:"p162", name:"Salad Dressing 500ml", unit:"500ml", category:"Condiments & Sauces"},
+    {id:"p163", name:"BBQ Braai Sauce 500ml", unit:"500ml", category:"Condiments & Sauces"},
+    {id:"p164", name:"Multivitamins (30 tablets)", unit:"30 tablets", category:"Health & Wellness"},
+    {id:"p165", name:"Plasters (40 pack)", unit:"40 pack", category:"Health & Wellness"},
+    {id:"p166", name:"Cough Sweets 100g", unit:"100g", category:"Health & Wellness"},
+    {id:"p167", name:"Rehydrate Sachets (10)", unit:"10 pack", category:"Health & Wellness"},
+    {id:"p168", name:"Lip Balm", unit:"each", category:"Health & Wellness"}
+  ];
+
+  // Simple icon-style visuals per product (not real product photography — see chat notes).
+  const ICONS = {
+    p1:"🥛", p2:"🥛", p3:"🥛", p4:"🥣", p5:"🧀", p6:"🧈", p7:"🧈", p8:"🥚", p9:"🥚", p10:"🥛",
+    p11:"🍞", p12:"🍞", p13:"🍞", p14:"🥖", p15:"🍪", p16:"🧁",
+    p17:"🥩", p18:"🍗", p19:"🍗", p20:"🌭", p21:"🥩", p22:"🥓", p23:"🍖", p24:"🍗",
+    p25:"🥔", p26:"🧅", p27:"🍅", p28:"🍌", p29:"🍎", p30:"🍊", p31:"🎃", p32:"🥬", p33:"🥕", p34:"🥑",
+    p35:"🛢️", p36:"🍬", p37:"🍬", p38:"🍚", p39:"🌾", p40:"🌾", p41:"🧂", p42:"🌽", p43:"🥜", p44:"🍓",
+    p45:"🥫", p46:"🥫", p47:"🍝", p48:"🍜", p49:"🍲",
+    p50:"🍟", p51:"🥦", p52:"🍦", p53:"🐟", p54:"🍕",
+    p55:"🍵", p56:"☕", p57:"🧃", p58:"🥤", p59:"💧",
+    p60:"🥔", p61:"🍫", p62:"🍪", p63:"🍿",
+    p64:"🧴", p65:"🧺", p66:"🧻", p67:"🧴", p68:"🗑️", p69:"🧽",
+    p70:"🪥", p71:"🧴", p72:"🧼", p73:"🧴", p74:"🛍️",
+    p75:"👶", p76:"🍼", p77:"👶",
+    p78:"🐶", p79:"🐱",
+    p80:"🥛", p81:"🧀", p82:"🧀", p83:"🧀", p84:"🍮", p85:"🧈",
+    p86:"🥐", p87:"🍞", p88:"🍞", p89:"🫓", p90:"🥯",
+    p91:"🍗", p92:"🥩", p93:"🥩", p94:"🍗", p95:"🌭", p96:"🥩",
+    p97:"🍋", p98:"🍇", p99:"🍐", p100:"🍉", p101:"🍍", p102:"🥒", p103:"🫛", p104:"🥦", p105:"🥦", p106:"🍠", p107:"🧄", p108:"🍄",
+    p109:"🥣", p110:"🥫", p111:"🥫", p112:"🫙", p113:"🫘", p114:"🫘", p115:"🌽", p116:"🍮", p117:"🥄", p118:"🥄", p119:"🍶", p120:"🍯",
+    p121:"🫛", p122:"🫐", p123:"🥟", p124:"🥟", p125:"🍧",
+    p126:"🧃", p127:"🥤", p128:"🥤", p129:"💧", p130:"☕",
+    p131:"🥜", p132:"🍬", p133:"🍦", p134:"🍪", p135:"🥨",
+    p136:"🧺", p137:"🧻", p138:"🌸", p139:"🧽", p140:"🧻", p141:"🔥",
+    p142:"🧴", p143:"🧴", p144:"🪒", p145:"🧴", p146:"🧴", p147:"🧴",
+    p148:"🍼", p149:"👶", p150:"👶", p151:"👶",
+    p152:"🐱", p153:"🐦", p154:"🐶",
+    p155:"🍅", p156:"🫙", p157:"🫙", p158:"🫙", p159:"🍶", p160:"🍶", p161:"🍶", p162:"🥗", p163:"🍖",
+    p164:"💊", p165:"🩹", p166:"🍬", p167:"💧", p168:"🧴"
+  };
+  const CATEGORY_ICONS = {
+    "Dairy & Eggs":"🥛", "Bakery":"🍞", "Meat & Poultry":"🍗", "Fruit & Veg":"🥦",
+    "Pantry & Groceries":"🥫", "Frozen":"🧊", "Beverages":"🥤", "Snacks & Confectionery":"🍫",
+    "Household & Cleaning":"🧼", "Personal Care":"🧴", "Baby":"👶", "Pet":"🐾",
+    "Condiments & Sauces":"🍅", "Health & Wellness":"💊"
+  };
+  const DEFAULT_ICON = "🛒";
+  function iconFor(product){
+    if(!product) return DEFAULT_ICON;
+    return ICONS[product.id] || CATEGORY_ICONS[product.category] || DEFAULT_ICON;
+  }
+  function iconForProductId(productId){
+    return iconFor(products.find(x=>x.id===productId));
   }
 
-  function showStatus(msg, isError){
-    const el = $('status');
-    el.textContent = msg;
-    el.className = isError ? 'err' : 'ok';
+  // Price keys are "productId::store::brand" so several brands per store/product can coexist.
+  // Cleared intentionally — prices now only come from real submissions and scanned receipts.
+  const DEFAULT_PRICES = {};
+
+  const DEFAULT_SPECIALS = [
+    {id:'seed1', store:'Checkers', branch:'Checkers Kalahari Mall, Cnr Van Riebeeck St & Dr Nelson Mandela Dr, Upington', brand:'Crystal Valley', product:'Full Cream Milk 2L', was:34.99, now:31.99, until:'2026-08-10', createdAt:Date.now()-3600000}
+  ];
+
+  let products = [];
+  let prices = {};
+  let specials = [];
+  let trolley = [];
+  let savingsHistory = [];
+  let userId = null;
+  let userProfile = null;
+  let appReviews = [];
+  let selectedStars = 0;
+  let userBranches = {};
+  let extraLocations = [];
+  let scanFileData = null;
+  let scanVideoFile = null;
+  let scanParsedItems = [];
+  let scanParsedMeta = {};
+  let scanCorrections = [];
+  let categoryMemory = {};
+  let activeCategory = "";
+  let userLocation = "All areas";
+  let currentModalProductId = null;
+
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  function fmtR(n){ return "R" + Number(n).toFixed(2); }
+  function timeAgo(ts){
+    const s = Math.floor((Date.now()-ts)/1000);
+    if(s<60) return "just now";
+    const m = Math.floor(s/60); if(m<60) return m+"m ago";
+    const h = Math.floor(m/60); if(h<24) return h+"h ago";
+    const d = Math.floor(h/24); return d+"d ago";
+  }
+  function daysUntil(dateStr){
+    const diff = new Date(dateStr) - new Date();
+    return Math.ceil(diff/86400000);
+  }
+  function allLocations(){
+    const extras = extraLocations.filter(t => !LOCATIONS.includes(t));
+    return LOCATIONS.concat(extras);
+  }
+  function allBranchesFor(store){
+    const merged = {};
+    const base = BRANCHES[store] || {};
+    Object.keys(base).forEach(t => { merged[t] = base[t].slice(); });
+    const extra = userBranches[store] || {};
+    Object.keys(extra).forEach(t => {
+      if(!merged[t]) merged[t] = [];
+      merged[t] = merged[t].concat(extra[t]);
+    });
+    return merged;
+  }
+  function branchesFor(store, location){
+    if(!location || location === "All areas") return [];
+    return allBranchesFor(store)[location] || [];
   }
 
-  function showLoggedIn(user, profileName){
-    $('authView').style.display = 'none';
-    $('loggedInView').style.display = 'block';
-    $('loggedInSub').textContent = `Signed in as ${profileName || user.email} (${user.email}).`;
+  // ---- geolocation: match a GPS position to the nearest covered town ----
+  function haversineKm(lat1, lon1, lat2, lon2){
+    const R = 6371;
+    const dLat = (lat2-lat1) * Math.PI/180;
+    const dLon = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+  function nearestCoveredTown(lat, lng){
+    let best = null, bestDist = Infinity;
+    Object.keys(TOWN_COORDS).forEach(town=>{
+      const c = TOWN_COORDS[town];
+      const d = haversineKm(lat, lng, c.lat, c.lng);
+      if(d < bestDist){ bestDist = d; best = town; }
+    });
+    return { town: best, distanceKm: bestDist };
+  }
+  function autoDetectLocation(){
+    return new Promise((resolve)=>{
+      if(!navigator.geolocation){ resolve(null); return; }
+      navigator.geolocation.getCurrentPosition(
+        (pos)=>{
+          const { town, distanceKm } = nearestCoveredTown(pos.coords.latitude, pos.coords.longitude);
+          // Only auto-pick a town if the match is reasonably close, otherwise leave it as "All areas"
+          resolve(distanceKm <= 150 ? town : "All areas");
+        },
+        ()=>{ resolve(null); },
+        { timeout: 6000 }
+      );
+    });
   }
 
-  window.addEventListener('error', (e)=>{
-    setConn('⚠ Page error: ' + (e.message || 'unknown') + ' (line ' + (e.lineno||'?') + ')', 'err');
+  // ---- brand-aware price key helpers ----
+  function priceKey(productId, store, brand){
+    const b = (brand && brand.trim()) ? brand.trim() : "Unspecified brand";
+    return productId+"::"+store+"::"+b;
+  }
+  function parsePriceKey(key){
+    const parts = key.split("::");
+    return { productId: parts[0], store: parts[1], brand: parts.slice(2).join("::") || "Unspecified brand" };
+  }
+
+  async function loadAll(){
+    try{
+      const p = await window.storage.get('products', true);
+      products = p ? JSON.parse(p.value) : DEFAULT_PRODUCTS;
+    }catch(e){ products = DEFAULT_PRODUCTS; await saveProducts(); }
+
+    try{
+      const pr = await window.storage.get('prices', true);
+      prices = pr ? JSON.parse(pr.value) : DEFAULT_PRICES;
+    }catch(e){ prices = DEFAULT_PRICES; await savePrices(); }
+
+    try{
+      const sp = await window.storage.get('specials', true);
+      specials = sp ? JSON.parse(sp.value) : DEFAULT_SPECIALS;
+    }catch(e){ specials = DEFAULT_SPECIALS; }
+
+    let hadStoredLocation = true;
+    try{
+      const loc = await window.storage.get('userLocation', false);
+      if(loc && loc.value){ userLocation = loc.value; }
+      else { hadStoredLocation = false; userLocation = "All areas"; }
+    }catch(e){ hadStoredLocation = false; userLocation = "All areas"; }
+
+    if(!hadStoredLocation){
+      const detected = await autoDetectLocation();
+      if(detected){ userLocation = detected; await saveUserLocation(); }
+    }
+
+    try{
+      const tr = await window.storage.get('trolley', false);
+      trolley = tr ? JSON.parse(tr.value) : [];
+    }catch(e){ trolley = []; }
+
+    try{
+      const sh = await window.storage.get('savingsHistory', false);
+      savingsHistory = sh ? JSON.parse(sh.value) : [];
+    }catch(e){ savingsHistory = []; }
+
+    try{
+      const uid = await window.storage.get('userId', false);
+      if(uid && uid.value){
+        userId = uid.value;
+      } else {
+        userId = 'u'+Date.now()+'_'+Math.floor(Math.random()*100000);
+        await window.storage.set('userId', userId, false);
+      }
+    }catch(e){ userId = 'u'+Date.now()+'_'+Math.floor(Math.random()*100000); }
+
+    try{
+      const up = await window.storage.get('userProfile', false);
+      userProfile = up ? JSON.parse(up.value) : null;
+    }catch(e){ userProfile = null; }
+
+    try{
+      const rv = await window.storage.get('appReviews', true);
+      appReviews = rv ? JSON.parse(rv.value) : [];
+    }catch(e){ appReviews = []; }
+
+    try{
+      const ub = await window.storage.get('userBranches', true);
+      userBranches = ub ? JSON.parse(ub.value) : {};
+    }catch(e){ userBranches = {}; }
+
+    try{
+      const el = await window.storage.get('extraLocations', true);
+      extraLocations = el ? JSON.parse(el.value) : [];
+    }catch(e){ extraLocations = []; }
+
+    try{
+      const sc = await window.storage.get('scanCorrections', true);
+      scanCorrections = sc ? JSON.parse(sc.value) : [];
+    }catch(e){ scanCorrections = []; }
+
+    try{
+      const cm = await window.storage.get('categoryMemory', true);
+      categoryMemory = cm ? JSON.parse(cm.value) : {};
+    }catch(e){ categoryMemory = {}; }
+
+    populateLocationSelect();
+    populateCategoryFilter();
+    populateCatStrip();
+    populateStoreSelects();
+    populateBranchSelects();
+    populateSubmitCategorySelect();
+    renderProductGrid();
+    renderSpecials();
+    renderSubmitProductOptions();
+    renderTrolley();
+    renderSavingsReport();
+    updateShareCard();
+    renderProfileChip();
+    renderReviews();
+    await checkRetailerVerified();
+    await checkAdminVerified();
+  }
+
+  async function saveProducts(){ try{ await window.storage.set('products', JSON.stringify(products), true); return true; }catch(e){ return false; } }
+  async function savePrices(){ try{ await window.storage.set('prices', JSON.stringify(prices), true); return true; }catch(e){ return false; } }
+  async function saveSpecials(){ try{ await window.storage.set('specials', JSON.stringify(specials), true); return true; }catch(e){ return false; } }
+  async function saveUserLocation(){ try{ await window.storage.set('userLocation', userLocation, false); }catch(e){} }
+  async function saveTrolley(){ try{ await window.storage.set('trolley', JSON.stringify(trolley), false); }catch(e){} }
+  async function saveSavingsHistory(){ try{ await window.storage.set('savingsHistory', JSON.stringify(savingsHistory), false); }catch(e){} }
+
+  function allEntriesForProduct(productId){
+    const prefix = productId+"::";
+    return Object.keys(prices).filter(k=>k.startsWith(prefix)).map(key=>{
+      const {store, brand} = parsePriceKey(key);
+      return {key, store, brand, rec: prices[key]};
+    });
+  }
+  function localEntriesForProduct(productId, location){
+    const all = allEntriesForProduct(productId);
+    if(!location || location === "All areas") return all;
+    return all.filter(e => e.rec.town === location);
+  }
+  function bestForProduct(productId, location){
+    const local = localEntriesForProduct(productId, location);
+    const usingLocal = local.length > 0;
+    const entries = usingLocal ? local : allEntriesForProduct(productId);
+    if(entries.length === 0) return null;
+    entries.sort((a,b)=>a.rec.price - b.rec.price);
+    const top = entries[0];
+    return { store: top.store, brand: top.brand, price: top.rec.price, updatedAt: top.rec.updatedAt, isLocal: usingLocal };
+  }
+  function worstForProduct(productId, location){
+    const local = localEntriesForProduct(productId, location);
+    const entries = local.length > 0 ? local : allEntriesForProduct(productId);
+    if(entries.length === 0) return null;
+    entries.sort((a,b)=>b.rec.price - a.rec.price);
+    const top = entries[0];
+    return {store: top.store, brand: top.brand, price: top.rec.price};
+  }
+  function reportingStatsForProduct(productId, location){
+    const local = localEntriesForProduct(productId, location);
+    const usingLocal = local.length > 0;
+    const entries = usingLocal ? local : allEntriesForProduct(productId);
+    const stores = new Set(entries.map(e=>e.store));
+    const brands = new Set(entries.map(e=>e.brand));
+    return { stores: stores.size, brands: brands.size, total: entries.length, isLocal: usingLocal };
+  }
+  function activeSpecialForProduct(productName){
+    const now = new Date();
+    return specials.find(sp => sp.product.toLowerCase() === productName.toLowerCase() && new Date(sp.until) >= now);
+  }
+
+  function populateLocationSelect(){
+    const sel = $('#locationSelect');
+    const locs = allLocations();
+    sel.innerHTML = locs.map(l=>`<option value="${l}" ${l===userLocation?'selected':''}>${l==="All areas" ? "📍 All areas" : "📍 "+l}</option>`).join('');
+  }
+  function populateCategoryFilter(){
+    const sel = $('#categoryFilter');
+    sel.innerHTML = '<option value="">All categories</option>' + CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+  function populateCatStrip(){
+    const strip = $('#catStrip');
+    strip.innerHTML = ['All', ...CATEGORIES].map(c=>{
+      const val = c === 'All' ? '' : c;
+      const isActive = activeCategory === val;
+      return `<button class="cat-chip ${isActive?'active':''}" data-cat="${val}">${c}</button>`;
+    }).join('');
+    $$('.cat-chip', strip).forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        activeCategory = chip.dataset.cat;
+        $('#categoryFilter').value = activeCategory;
+        populateCatStrip();
+        renderProductGrid();
+      });
+    });
+  }
+  function populateStoreSelects(){
+    const opts = STORES.map(s=>`<option value="${s}">${s}</option>`).join('');
+    $('#sf-store').innerHTML = opts;
+    $('#ps-store').innerHTML = opts;
+    $('#branch-store').innerHTML = opts;
+    $('#scan-store').innerHTML = opts;
+    $('#knownTownsList').innerHTML = allLocations().filter(l=>l!=="All areas").map(l=>`<option value="${l}"></option>`).join('');
+  }
+  function populateBranchSelects(){
+    fillBranchSelect($('#sf-branch'), $('#sf-store').value);
+    fillBranchSelect($('#ps-branch'), $('#ps-store').value);
+    fillBranchSelect($('#scan-branch'), $('#scan-store').value);
+  }
+  function fillBranchSelect(sel, store){
+    const map = allBranchesFor(store);
+    const opts = [];
+    Object.keys(map).forEach(town=>{
+      map[town].forEach(addr=>{ opts.push({town, addr}); });
+    });
+    if(opts.length === 0){
+      sel.innerHTML = `<option value="">No branches listed</option>`;
+      return;
+    }
+    sel.innerHTML = opts.map(o=>`<option value="${o.town}|||${o.addr}">${o.town} — ${o.addr}</option>`).join('');
+    if(userLocation !== "All areas"){
+      const match = opts.find(o=>o.town===userLocation);
+      if(match) sel.value = match.town+"|||"+match.addr;
+    }
+  }
+  function populateSubmitCategorySelect(){
+    const sel = $('#sf-category');
+    sel.innerHTML = CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('');
+  }
+  function renderSubmitProductOptions(){
+    const cat = $('#sf-category').value || CATEGORIES[0];
+    const sel = $('#sf-product');
+    const inCat = products.filter(p=>p.category===cat);
+    sel.innerHTML = inCat.map(p=>`<option value="${p.id}">${p.name}</option>`).join('') + '<option value="__new">+ Add a new product…</option>';
+    toggleNewProductRow();
+  }
+  function toggleNewProductRow(){
+    const isNew = $('#sf-product').value === '__new';
+    $('#sf-newProductRow').style.display = isNew ? 'flex' : 'none';
+  }
+
+  function renderProductGrid(){
+    const q = $('#searchInput').value.trim().toLowerCase();
+    const cat = $('#categoryFilter').value;
+    const grid = $('#productGrid');
+    let list = products.filter(p=>{
+      const matchesQ = !q || p.name.toLowerCase().includes(q);
+      const matchesCat = !cat || p.category === cat;
+      return matchesQ && matchesCat;
+    });
+
+    if(list.length === 0){
+      grid.innerHTML = `<div class="empty">No products match yet. Be the first to <strong>add a price</strong> for it.</div>`;
+      return;
+    }
+
+    grid.innerHTML = list.map(p=>{
+      const best = bestForProduct(p.id, userLocation);
+      const stats = reportingStatsForProduct(p.id, userLocation);
+      const special = activeSpecialForProduct(p.name);
+      const showLocalNote = userLocation !== "All areas" && best && !best.isLocal;
+      return `
+        <div class="tag-card" data-id="${p.id}">
+          ${special ? `<div class="special-flag">Special</div>` : ''}
+          ${best ? `<button class="quick-add" data-id="${p.id}" title="Add cheapest to trolley">+</button>` : ''}
+          <div class="card-icon">${iconFor(p)}</div>
+          <div class="cat">${p.category}</div>
+          <h3>${p.name}</h3>
+          <div class="unit">${p.unit}</div>
+          ${best ? `
+            <div class="best-row">
+              <div>
+                <div class="best-price">${fmtR(best.price)}</div>
+                <div class="best-store">${best.brand} · ${best.store}</div>
+              </div>
+            </div>
+            <div class="n-stores">${stats.total} price${stats.total!==1?'s':''} · ${stats.brands} brand${stats.brands!==1?'s':''}${showLocalNote ? ' · none in '+userLocation+' yet' : ''}</div>
+          ` : `<div class="n-stores" style="margin-top:14px;">No prices yet — add the first one</div>`}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // one-time delegated listener: survives re-renders since #productGrid itself never gets replaced
+  $('#productGrid').addEventListener('click', (e)=>{
+    const qa = e.target.closest('.quick-add');
+    if(qa){
+      e.stopPropagation();
+      addBestToTrolley(qa.dataset.id);
+      return;
+    }
+    const card = e.target.closest('.tag-card');
+    if(card) openModal(card.dataset.id);
   });
 
-  let supabaseClient = null;
+  function populateLocationFilter(productId){
+    const sel = $('#m-location-filter');
+    const opts = ['<option value="All areas">All areas</option>'];
+    if(userLocation !== "All areas"){
+      opts.unshift(`<option value="${userLocation}">Near me (${userLocation})</option>`);
+    }
+    sel.innerHTML = opts.join('');
+    sel.value = userLocation !== "All areas" ? userLocation : "All areas";
+  }
+
+  function populateBrandFilter(productId, locationFilter){
+    let entries = allEntriesForProduct(productId);
+    if(locationFilter && locationFilter !== "All areas"){
+      const scoped = entries.filter(e => e.rec.town === locationFilter);
+      if(scoped.length > 0){ entries = scoped; }
+    }
+    const brands = Array.from(new Set(entries.map(e=>e.brand))).sort();
+    const sel = $('#m-brand-filter');
+    sel.innerHTML = '<option value="">All brands</option>' + brands.map(b=>`<option value="${b}">${b}</option>`).join('');
+    sel.value = "";
+  }
+
+  function renderModalRows(productId, brandFilter, locationFilter){
+    let entries = allEntriesForProduct(productId);
+    let usedFallback = false;
+    if(locationFilter && locationFilter !== "All areas"){
+      const scoped = entries.filter(e => e.rec.town === locationFilter);
+      if(scoped.length > 0){ entries = scoped; } else { usedFallback = true; }
+    }
+    if(brandFilter){ entries = entries.filter(e=>e.brand === brandFilter); }
+    entries.sort((a,b)=>a.rec.price - b.rec.price);
+
+    if(usedFallback){
+      $('#m-loc-fallback-note').style.display = 'block';
+      $('#m-loc-fallback-note').textContent = `No prices in ${locationFilter} yet — showing all areas below.`;
+    } else {
+      $('#m-loc-fallback-note').style.display = 'none';
+    }
+
+    if(entries.length === 0){
+      $('#m-rows').innerHTML = `<div class="empty">No prices submitted yet for this brand/product.</div>`;
+      return;
+    }
+
+    const p = products.find(x=>x.id===productId);
+    const pName = p ? p.name.replace(/"/g,'&quot;') : '';
+    const pUnit = p ? p.unit.replace(/"/g,'&quot;') : '';
+
+    $('#m-rows').innerHTML = entries.map((e,i)=>{
+      const branches = branchesFor(e.store, userLocation);
+      let pickupHtml;
+      if(branches.length === 0){
+        pickupHtml = userLocation==="All areas" ? "Pick a location" : "Not in " + userLocation;
+      } else {
+        pickupHtml = branches.map(b=>"• "+b).join('<br>');
+      }
+      const daysOld = (Date.now() - e.rec.updatedAt) / 86400000;
+      const isStale = daysOld > 21;
+      const confirmCount = e.rec.confirmCount || 0;
+      const reportCount = e.rec.reportCount || 0;
+      const isDisputed = reportCount >= 3;
+      return `
+        <div class="price-card ${i===0 ? 'winner':''}">
+          <div class="pc-top">
+            <div>
+              <div class="pc-brand">${e.brand}</div>
+              <div class="pc-store">${e.store}${e.rec.town ? ' · '+e.rec.town : ''}</div>
+            </div>
+            <div class="pc-price">${fmtR(e.rec.price)}</div>
+          </div>
+          <div class="pc-meta">
+            <span class="${isStale?'stale':''}">${timeAgo(e.rec.updatedAt)}${isStale ? ' · ⏳ may be outdated' : ''}</span>
+            ${isDisputed ? '<span class="disputed-flag">Disputed</span>' : ''}
+            ${e.rec.source === 'receipt-scan' ? '<span class="receipt-badge">🧾 From a scanned receipt</span>' : ''}
+          </div>
+          <div class="pc-trust">
+            <button class="trust-btn confirm" type="button" data-key="${e.key}" data-action="confirm">👍 Still right (${confirmCount})</button>
+            <button class="trust-btn report" type="button" data-key="${e.key}" data-action="report">🚩 Report (${reportCount})</button>
+          </div>
+          <div class="pc-pickup ${branches.length?'':'none'}">${pickupHtml}</div>
+          <div class="pc-actions">
+            <a class="deliver-btn" href="${DELIVERY_LINKS[e.store]}" target="_blank" rel="noopener">Get it delivered</a>
+            <button class="add-trolley-btn" data-product="${productId}" data-name="${pName}" data-unit="${pUnit}" data-store="${e.store}" data-brand="${e.brand}" data-price="${e.rec.price}">+ Trolley</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  $('#m-rows').addEventListener('click', async (e)=>{
+    const trolleyBtn = e.target.closest('.add-trolley-btn');
+    if(trolleyBtn){
+      addToTrolley(trolleyBtn.dataset.product, trolleyBtn.dataset.name, trolleyBtn.dataset.unit, trolleyBtn.dataset.store, trolleyBtn.dataset.brand, parseFloat(trolleyBtn.dataset.price));
+      const orig = trolleyBtn.textContent;
+      trolleyBtn.textContent = 'Added ✓';
+      trolleyBtn.disabled = true;
+      setTimeout(()=>{ trolleyBtn.textContent = orig; trolleyBtn.disabled = false; }, 1400);
+      return;
+    }
+
+    const trustBtn = e.target.closest('.trust-btn');
+    if(trustBtn){
+      const key = trustBtn.dataset.key;
+      const rec = prices[key];
+      if(!rec) return;
+      trustBtn.disabled = true;
+      if(trustBtn.dataset.action === 'confirm'){
+        rec.confirmCount = (rec.confirmCount || 0) + 1;
+        rec.updatedAt = Date.now(); // a confirmation counts as fresh verification
+      } else {
+        rec.reportCount = (rec.reportCount || 0) + 1;
+      }
+      await savePrices();
+      renderProductGrid();
+      if(currentModalProductId){
+        renderModalRows(currentModalProductId, $('#m-brand-filter').value, $('#m-location-filter').value);
+      }
+    }
+  });
+
+  function openModal(productId){
+    const p = products.find(x=>x.id===productId);
+    if(!p) return;
+    currentModalProductId = productId;
+    $('#m-icon').textContent = iconFor(p);
+    $('#m-cat').textContent = p.category;
+    $('#m-name').textContent = p.name;
+    $('#m-unit').textContent = p.unit;
+
+    const special = activeSpecialForProduct(p.name);
+    $('#m-special-note').innerHTML = special
+      ? `<div class="special-note">🔖 ${special.brand ? special.brand+' — ' : ''}${special.store} special: ${fmtR(special.now)} until ${special.until}</div>`
+      : '';
+
+    populateLocationFilter(productId);
+    const initialLocationFilter = $('#m-location-filter').value;
+    populateBrandFilter(productId, initialLocationFilter);
+    renderModalRows(productId, "", initialLocationFilter);
+
+    $('#m-loc-note').innerHTML = `📍 Showing pickup points for ${userLocation} — change your area in the top bar.`;
+    $('#modalOverlay').classList.add('open');
+  }
+
+  $('#m-brand-filter').addEventListener('change', ()=>{
+    if(currentModalProductId) renderModalRows(currentModalProductId, $('#m-brand-filter').value, $('#m-location-filter').value);
+  });
+
+  $('#m-location-filter').addEventListener('change', ()=>{
+    if(currentModalProductId){
+      populateBrandFilter(currentModalProductId, $('#m-location-filter').value);
+      renderModalRows(currentModalProductId, $('#m-brand-filter').value, $('#m-location-filter').value);
+    }
+  });
+
+  function renderSpecials(){
+    const now = new Date();
+    const active = specials.filter(sp => new Date(sp.until) >= now).sort((a,b)=> new Date(a.until)-new Date(b.until));
+    const board = $('#specialsBoard');
+    if(active.length===0){
+      board.innerHTML = `<div class="empty">No active specials right now. Verified retailers can pin one from "Post a special".</div>`;
+      return;
+    }
+    board.innerHTML = active.map((sp,i)=>{
+      const rot = (i % 2 === 0 ? -1.5 : 1.5) + (i%3)*0.4;
+      const du = daysUntil(sp.until);
+      const branchLine = sp.branch ? `<div class="p-until">📍 ${sp.branch}</div>` : '';
+      return `
+        <div class="pin" style="--r:${rot}deg">
+          <div class="p-store">${sp.store}</div>
+          <h4>${sp.brand ? sp.brand+' — ' : ''}${sp.product}</h4>
+          <div class="p-prices">
+            <span class="p-was">${fmtR(sp.was)}</span>
+            <span class="p-now">${fmtR(sp.now)}</span>
+          </div>
+          <div class="p-until">Valid ${du>0 ? `for ${du} more day${du!==1?'s':''}` : 'today'} · until ${sp.until}</div>
+          ${branchLine}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------------- Trolley ----------------
+
+  function addBestToTrolley(productId){
+    const best = bestForProduct(productId, userLocation);
+    if(!best) return;
+    const p = products.find(x=>x.id===productId);
+    if(!p) return;
+    addToTrolley(productId, p.name, p.unit, best.store, best.brand, best.price);
+  }
+
+  function addToTrolley(productId, productName, unit, store, brand, price){
+    const now = Date.now();
+    trolley.push({
+      id: 't'+now+'_'+Math.floor(Math.random()*1000),
+      productId, productName, unit, store, brand, price, addedAt: now
+    });
+    saveTrolley();
+
+    const worst = worstForProduct(productId, userLocation);
+    const itemSavings = worst ? Math.max(0, worst.price - price) : 0;
+    savingsHistory.push({
+      id: 'h'+now+'_'+Math.floor(Math.random()*1000),
+      productId, productName, store, brand, price, savings: itemSavings, date: now
+    });
+    saveSavingsHistory();
+
+    renderTrolley();
+    renderSavingsReport();
+    updateShareCard();
+  }
+
+  function renderTrolleyBadge(){
+    const badge = $('#trolleyBadge');
+    if(trolley.length > 0){
+      badge.textContent = trolley.length;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function renderTrolley(){
+    renderTrolleyBadge();
+    if(trolley.length === 0){
+      $('#trolleyEmpty').style.display = 'block';
+      $('#trolleyContent').style.display = 'none';
+      return;
+    }
+    $('#trolleyEmpty').style.display = 'none';
+    $('#trolleyContent').style.display = 'block';
+
+    $('#trolleyList').innerHTML = trolley.map(item=>`
+      <div class="trolley-row">
+        <div class="tr-icon">${iconForProductId(item.productId)}</div>
+        <div class="tr-info">
+          <div class="tr-name">${item.productName}</div>
+          <div class="tr-meta">${item.brand} · ${item.store}${item.unit ? ' · '+item.unit : ''}</div>
+        </div>
+        <div class="tr-price">${fmtR(item.price)}</div>
+        <button class="tr-remove" data-tid="${item.id}" title="Remove">✕</button>
+      </div>
+    `).join('');
+
+    let totalCost = 0;
+    let totalSavings = 0;
+    trolley.forEach(item=>{
+      totalCost += item.price;
+      const worst = worstForProduct(item.productId, userLocation);
+      if(worst){ totalSavings += Math.max(0, worst.price - item.price); }
+    });
+
+    $('#savingsBanner').innerHTML = `
+      <div class="sb-amount">${fmtR(totalSavings)}</div>
+      <div class="sb-label">saved — the gap between the highest price on record and what you actually picked, per item</div>
+      <div class="sb-note">Basket total: ${fmtR(totalCost)} — based on shopper-submitted prices, not a guarantee of what you'll pay in-store.</div>
+    `;
+
+    const groups = {};
+    trolley.forEach(item=>{
+      if(!groups[item.store]) groups[item.store] = [];
+      groups[item.store].push(item);
+    });
+
+    $('#checkoutGroups').innerHTML = Object.keys(groups).map((store, gi)=>{
+      const items = groups[store];
+      const subtotal = items.reduce((s,i)=>s+i.price, 0);
+      const listText = items.map(i=>`${i.productName} (${i.brand})`).join('\n');
+      return `
+        <div class="checkout-group">
+          <div class="cg-head">
+            <div>
+              <div class="cg-store">${store}</div>
+              <div class="cg-sub">${items.length} item${items.length!==1?'s':''}</div>
+            </div>
+            <div class="cg-total">${fmtR(subtotal)}</div>
+          </div>
+          <ul>${items.map(i=>`<li>${iconForProductId(i.productId)} ${i.productName} — ${i.brand} (${fmtR(i.price)})</li>`).join('')}</ul>
+          <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="deliver-btn copy-list-btn" type="button" data-list="${listText.replace(/"/g,'&quot;')}" data-idx="${gi}" style="border:none; cursor:pointer;">📋 Copy this list</button>
+            <a class="deliver-btn cg-go" href="${DELIVERY_LINKS[store]}" target="_blank" rel="noopener">Open ${store}'s site</a>
+          </div>
+          <p style="font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.5; margin-top:8px;">Copies your list so you can paste it into ${store}'s search bar item by item — Skarrel can't add items to their cart directly.</p>
+        </div>
+      `;
+    }).join('');
+  }
+
+  $('#checkoutGroups').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.copy-list-btn');
+    if(!btn) return;
+    const text = btn.dataset.list;
+    const orig = btn.textContent;
+    try{
+      await navigator.clipboard.writeText(text);
+      btn.textContent = 'Copied ✓';
+    }catch(err){
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = 'Copied ✓';
+      }catch(err2){
+        btn.textContent = 'See list above';
+      }
+    }
+    setTimeout(()=>{ btn.textContent = orig; }, 1600);
+  });
+
+  $('#trolleyList').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.tr-remove');
+    if(!btn) return;
+    trolley = trolley.filter(t=>t.id !== btn.dataset.tid);
+    saveTrolley();
+    renderTrolley();
+  });
+
+  $('#clearTrolleyBtn').addEventListener('click', ()=>{
+    trolley = [];
+    saveTrolley();
+    renderTrolley();
+  });
+
+  // ---------------- Monthly savings report ----------------
+
+  function renderSavingsReport(){
+    if(savingsHistory.length === 0){
+      $('#reportEmpty').style.display = 'block';
+      $('#reportContent').style.display = 'none';
+      return;
+    }
+    $('#reportEmpty').style.display = 'none';
+    $('#reportContent').style.display = 'block';
+
+    const byMonth = {};
+    savingsHistory.forEach(rec=>{
+      const d = new Date(rec.date);
+      const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      if(!byMonth[key]){
+        byMonth[key] = {
+          records: [], totalSavings: 0, totalSpent: 0,
+          monthLabel: d.toLocaleString('en-ZA', {month:'long', year:'numeric'})
+        };
+      }
+      byMonth[key].records.push(rec);
+      byMonth[key].totalSavings += rec.savings;
+      byMonth[key].totalSpent += rec.price;
+    });
+
+    const monthKeys = Object.keys(byMonth).sort().reverse();
+    const maxSavings = Math.max(...monthKeys.map(k=>byMonth[k].totalSavings), 1);
+
+    $('#reportMonths').innerHTML = monthKeys.map(key=>{
+      const m = byMonth[key];
+      const barPct = Math.max(4, Math.round((m.totalSavings / maxSavings) * 100));
+      return `
+        <div class="report-month">
+          <div class="rm-head">
+            <div>
+              <div class="rm-title">${m.monthLabel}</div>
+              <div class="rm-sub">${m.records.length} item${m.records.length!==1?'s':''} added via Skarrel</div>
+            </div>
+            <div class="rm-saved">${fmtR(m.totalSavings)}</div>
+          </div>
+          <div class="rm-bar-track"><div class="rm-bar-fill" style="width:${barPct}%"></div></div>
+          <div class="rm-spent">Spent on these picks: ${fmtR(m.totalSpent)}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------------- Monthly savings helpers ----------------
+
+  function currentMonthKey(){
+    const now = new Date();
+    return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  }
+  function currentMonthTotalSavings(){
+    const key = currentMonthKey();
+    return savingsHistory
+      .filter(r => {
+        const d = new Date(r.date);
+        return (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')) === key;
+      })
+      .reduce((s,r)=>s+r.savings, 0);
+  }
+
+  function renderProfileChip(){
+    const chip = $('#profileChip');
+    if(userProfile && userProfile.name){
+      chip.style.display = 'inline-block';
+      chip.textContent = 'Hi, ' + userProfile.name;
+    } else {
+      chip.style.display = 'none';
+    }
+  }
+
+  // ---- Real Supabase auth (login by default; returning users land straight on the login form) ----
   const SUPABASE_URL = "https://fawfdeiphmxyjvyoeeyv.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhd2ZkZWlwaG14eWp2eW9lZXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MzY0OTUsImV4cCI6MjEwMTQxMjQ5NX0.mAnvidHIW0saISLG3-utWkXOMefmENHGkCbAD8O455s";
+  let supabaseClient = null;
 
-  // Give the CDN script a moment, then run a real connectivity check — this happens
-  // automatically on page load, no button click needed, so we can see the result immediately.
-  setTimeout(async () => {
+  function showAuthOverlay(mode){
+    $('#authLoginView').style.display = mode === 'login' ? 'block' : 'none';
+    $('#authSignupView').style.display = mode === 'signup' ? 'block' : 'none';
+    $('#authAccountView').style.display = mode === 'account' ? 'block' : 'none';
+    $('#signupCloseBtn').style.display = mode === 'account' ? 'block' : 'none';
+    $('#authLoginError').style.display = 'none';
+    $('#authSignupError').style.display = 'none';
+    $('#signupOverlay').style.display = 'flex';
+  }
+
+  async function onAuthedUser(user){
+    let name = user.email;
     try{
-      if(typeof window.supabase === 'undefined'){
-        setConn('⚠ The Supabase library script never loaded (window.supabase is undefined). This usually means the CDN script was blocked or failed — check your internet connection, or try a different network/browser.', 'err');
-        $('signUpBtn').disabled = true;
-        $('signInBtn').disabled = true;
-        return;
-      }
+      const { data: profile } = await supabaseClient.from('profiles').select('name').eq('id', user.id).single();
+      if(profile && profile.name) name = profile.name;
+    }catch(e){}
+    userProfile = { name, email: user.email, id: user.id };
+    renderProfileChip();
+    $('#signupOverlay').style.display = 'none';
+  }
 
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  $('#goToSignupBtn').addEventListener('click', ()=> showAuthOverlay('signup'));
+  $('#goToLoginBtn').addEventListener('click', ()=> showAuthOverlay('login'));
+  $('#signupCloseBtn').addEventListener('click', ()=>{ $('#signupOverlay').style.display = 'none'; });
 
-      // A real round-trip to Supabase, independent of sign-up/login — proves the URL/key actually work.
-      const { error } = await supabaseClient.from('profiles').select('id').limit(1);
-      if(error){
-        setConn('⚠ Connected to the library, but Supabase rejected the request: ' + error.message, 'err');
-        return;
-      }
-
-      setConn('✅ Connected to Supabase successfully.', 'ok');
-    }catch(err){
-      setConn('⚠ Unexpected error during connection check: ' + err.message, 'err');
-    }
-  }, 400);
-
-  $('signUpBtn').addEventListener('click', async () => {
-    if(!supabaseClient){ showStatus('Supabase is not connected — see the message above.', true); return; }
-
-    const btn = $('signUpBtn');
-    const name = $('name').value.trim();
-    const email = $('email').value.trim();
-    const password = $('password').value;
-    if(!name){ showStatus('Enter your name.', true); return; }
-    if(!email || !password || password.length < 6){ showStatus('Enter a valid email and a password of at least 6 characters.', true); return; }
-
-    btn.disabled = true;
-    const origText = btn.textContent;
-    btn.textContent = 'Creating…';
-
-    try{
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if(error){ showStatus('Sign-up failed: ' + error.message, true); return; }
-
-      if(data.user){
-        const { error: profileError } = await supabaseClient.from('profiles').insert({ id: data.user.id, name });
-        if(profileError){
-          showStatus('Account created, but saving your profile failed: ' + profileError.message, true);
-          return;
-        }
-        showStatus('Account created!', false);
-        showLoggedIn(data.user, name);
-      } else {
-        showStatus('Check your email to confirm your account, then log in.', false);
-      }
-    }catch(err){
-      showStatus('Unexpected error: ' + err.message, true);
-    }finally{
-      btn.disabled = false;
-      btn.textContent = origText;
-    }
+  $('#profileChip').addEventListener('click', ()=>{
+    if(!userProfile) return;
+    $('#authAccountSub').textContent = 'Signed in as ' + userProfile.name + ' (' + userProfile.email + ').';
+    showAuthOverlay('account');
   });
 
-  $('signInBtn').addEventListener('click', async () => {
-    if(!supabaseClient){ showStatus('Supabase is not connected — see the message above.', true); return; }
+  $('#authLoginBtn').addEventListener('click', async ()=>{
+    if(!supabaseClient){ return; }
+    const email = $('#login-email').value.trim();
+    const password = $('#login-password').value;
+    const errEl = $('#authLoginError');
+    errEl.style.display = 'none';
+    if(!email || !password){ errEl.textContent = 'Enter your email and password.'; errEl.style.display = 'block'; return; }
 
-    const email = $('email').value.trim();
-    const password = $('password').value;
-    if(!email || !password){ showStatus('Enter your email and password.', true); return; }
-
+    const btn = $('#authLoginBtn');
+    btn.disabled = true; const origText = btn.textContent; btn.textContent = 'Logging in…';
     try{
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if(error){ showStatus('Login failed: ' + error.message, true); return; }
-
-      const { data: profile } = await supabaseClient.from('profiles').select('name').eq('id', data.user.id).single();
-      showLoggedIn(data.user, profile ? profile.name : null);
+      if(error){ errEl.textContent = 'Login failed: ' + error.message; errEl.style.display = 'block'; return; }
+      await onAuthedUser(data.user);
     }catch(err){
-      showStatus('Unexpected error: ' + err.message, true);
+      errEl.textContent = 'Unexpected error: ' + err.message; errEl.style.display = 'block';
+    }finally{
+      btn.disabled = false; btn.textContent = origText;
     }
   });
 
-  $('signOutBtn').addEventListener('click', async () => {
-    if(!supabaseClient) return;
-    await supabaseClient.auth.signOut();
-    $('loggedInView').style.display = 'none';
-    $('authView').style.display = 'block';
-    $('status').className = '';
+  $('#authSignupBtn').addEventListener('click', async ()=>{
+    if(!supabaseClient){ return; }
+    const name = $('#signup-name').value.trim();
+    const email = $('#signup-email').value.trim();
+    const password = $('#signup-password').value;
+    const errEl = $('#authSignupError');
+    errEl.style.display = 'none';
+    if(!name){ errEl.textContent = 'Enter your name.'; errEl.style.display = 'block'; return; }
+    if(!email || !password || password.length < 6){ errEl.textContent = 'Enter a valid email and a password of at least 6 characters.'; errEl.style.display = 'block'; return; }
+
+    const btn = $('#authSignupBtn');
+    btn.disabled = true; const origText = btn.textContent; btn.textContent = 'Creating…';
+    try{
+      const { data, error } = await supabaseClient.auth.signUp({ email, password });
+      if(error){ errEl.textContent = 'Sign-up failed: ' + error.message; errEl.style.display = 'block'; return; }
+      if(data.user){
+        try{ await supabaseClient.from('profiles').insert({ id: data.user.id, name }); }catch(e){}
+        await onAuthedUser(data.user);
+      } else {
+        errEl.style.color = 'var(--value-green)';
+        errEl.textContent = 'Check your email to confirm your account, then log in.';
+        errEl.style.display = 'block';
+      }
+    }catch(err){
+      errEl.textContent = 'Unexpected error: ' + err.message; errEl.style.display = 'block';
+    }finally{
+      btn.disabled = false; btn.textContent = origText;
+    }
   });
+
+  $('#authSignOutBtn').addEventListener('click', async ()=>{
+    if(supabaseClient){ try{ await supabaseClient.auth.signOut(); }catch(e){} }
+    userProfile = null;
+    renderProfileChip();
+    showAuthOverlay('login');
+  });
+
+  async function initAuthAndApp(){
+    try{
+      if(typeof window.supabase !== 'undefined'){
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    }catch(e){}
+
+    await loadAll();
+
+    if(supabaseClient){
+      try{
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if(session && session.user){
+          await onAuthedUser(session.user);
+          return;
+        }
+      }catch(e){}
+    }
+    showAuthOverlay('login');
+  }
+
+  // ---------------- Reviews ----------------
+
+  function setSelectedStars(n){
+    selectedStars = n;
+    $$('.star-btn', $('#starPicker')).forEach(btn=>{
+      const val = parseInt(btn.dataset.star, 10);
+      btn.classList.toggle('active', val <= n);
+    });
+  }
+
+  $$('.star-btn', $('#starPicker')).forEach(btn=>{
+    btn.addEventListener('click', ()=> setSelectedStars(parseInt(btn.dataset.star, 10)));
+  });
+
+  async function saveAppReviews(){
+    try{ await window.storage.set('appReviews', JSON.stringify(appReviews), true); }catch(e){}
+  }
+
+  $('#reviewSubmitBtn').addEventListener('click', async ()=>{
+    if(selectedStars < 1){ alert('Pick a star rating first.'); return; }
+    const comment = $('#review-comment').value.trim();
+    const reviewerName = (userProfile && userProfile.name) || 'Anonymous';
+
+    const existingIdx = appReviews.findIndex(r => r.userId === userId);
+    const entry = { id: (existingIdx>=0 ? appReviews[existingIdx].id : 'r'+Date.now()+'_'+Math.floor(Math.random()*1000)),
+      userId, name: reviewerName, rating: selectedStars, comment, date: Date.now() };
+
+    if(existingIdx >= 0){ appReviews[existingIdx] = entry; }
+    else{ appReviews.push(entry); }
+
+    await saveAppReviews();
+    renderReviews();
+
+    setSelectedStars(0);
+    $('#review-comment').value = '';
+    const toast = $('#review-toast');
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), 3000);
+  });
+
+  function renderReviews(){
+    if(appReviews.length === 0){
+      $('#reviewSummary').innerHTML = `
+        <div>
+          <div class="rs-avg">–</div>
+          <div class="rs-count">No reviews yet</div>
+        </div>
+      `;
+      $('#reviewsEmpty').style.display = 'block';
+      $('#reviewsList').innerHTML = '';
+      return;
+    }
+    $('#reviewsEmpty').style.display = 'none';
+
+    const avg = appReviews.reduce((s,r)=>s+r.rating, 0) / appReviews.length;
+    const fullStars = Math.round(avg);
+    const starsStr = '★'.repeat(fullStars) + '☆'.repeat(5-fullStars);
+
+    $('#reviewSummary').innerHTML = `
+      <div>
+        <div class="rs-avg">${avg.toFixed(1)}</div>
+        <div class="rs-stars">${starsStr}</div>
+      </div>
+      <div class="rs-count">${appReviews.length} review${appReviews.length!==1?'s':''} from real testers</div>
+    `;
+
+    const sorted = appReviews.slice().sort((a,b)=>b.date - a.date);
+    $('#reviewsList').innerHTML = sorted.map(r=>{
+      const stars = '★'.repeat(r.rating) + '☆'.repeat(5-r.rating);
+      const isMe = r.userId === userId;
+      return `
+        <div class="review-card">
+          <div class="rc-top">
+            <div>
+              <span class="rc-stars">${stars}</span>
+              <span class="rc-name"> — ${r.name}${isMe?' (you)':''}</span>
+            </div>
+            <div class="rc-date">${timeAgo(r.date)}</div>
+          </div>
+          ${r.comment ? `<div class="rc-comment">${r.comment}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------------- Shareable savings card ----------------
+
+  function updateShareCard(){
+    const monthLabel = new Date().toLocaleString('en-ZA', {month:'long', year:'numeric'});
+    const total = currentMonthTotalSavings();
+    $('#sc-month').textContent = monthLabel;
+    $('#sc-amount').textContent = fmtR(total);
+    $('#sc-sub').textContent = total > 0 ? 'saved by shopping around' : 'add items to your trolley to start saving';
+  }
+
+  function shareText(){
+    const monthLabel = new Date().toLocaleString('en-ZA', {month:'long', year:'numeric'});
+    const total = currentMonthTotalSavings();
+    return `I've saved ${fmtR(total)} this ${monthLabel} by comparing prices on Skarrel 🛒 — here to help you save!`;
+  }
+
+  async function textShareFallback(){
+    const text = shareText();
+    if(navigator.share){
+      try{ await navigator.share({ title: 'My Skarrel savings', text }); return; }catch(e){}
+    }
+    try{
+      await navigator.clipboard.writeText(text);
+      alert('Copied your savings summary — paste it into WhatsApp!');
+    }catch(e){
+      alert(text);
+    }
+  }
+
+  $('#shareCardBtn').addEventListener('click', async ()=>{
+    if(typeof html2canvas === 'undefined'){ await textShareFallback(); return; }
+    try{
+      const canvas = await html2canvas($('#shareCard'), { scale: 2, backgroundColor: null });
+      canvas.toBlob(async (blob)=>{
+        if(!blob){ await textShareFallback(); return; }
+        const file = new File([blob], 'skarrel-savings.png', { type: 'image/png' });
+        if(navigator.canShare && navigator.canShare({ files: [file] })){
+          try{
+            await navigator.share({ files: [file], title: 'My Skarrel savings', text: shareText() });
+            return;
+          }catch(e){}
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'skarrel-savings.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url), 4000);
+        alert('Card saved to your downloads — share it from there to WhatsApp.');
+      });
+    }catch(e){
+      await textShareFallback();
+    }
+  });
+
+  $('#downloadCardBtn').addEventListener('click', async ()=>{
+    if(typeof html2canvas === 'undefined'){ await textShareFallback(); return; }
+    try{
+      const canvas = await html2canvas($('#shareCard'), { scale: 2, backgroundColor: null });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url; a.download = 'skarrel-savings.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }catch(e){
+      await textShareFallback();
+    }
+  });
+
+  // --- view switching ---
+  function switchToView(view){
+    $$('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.view === view));
+    ['browse','trolley','report','specials','submit','scan','post-special','reviews','admin'].forEach(v=>{
+      $('#view-'+v).style.display = (v===view) ? 'block' : 'none';
+    });
+    if(view === 'report'){ updateShareCard(); }
+    if(view === 'reviews'){ renderReviews(); }
+    if(view === 'admin' && $('#admin-dashboard').style.display === 'block'){ renderAdminDashboard(); }
+  }
+
+  $$('nav.tabs button').forEach(btn=>{
+    btn.addEventListener('click', ()=> switchToView(btn.dataset.view));
+  });
+
+  $('#locationSelect').addEventListener('change', async (e)=>{
+    userLocation = e.target.value;
+    await saveUserLocation();
+    populateBranchSelects();
+    renderProductGrid();
+  });
+
+  $('#autoLocateBtn').addEventListener('click', async ()=>{
+    const btn = $('#autoLocateBtn');
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = '…';
+    const detected = await autoDetectLocation();
+    btn.disabled = false;
+    btn.textContent = orig;
+    if(!detected){
+      alert("Couldn't get your location — check that location access is allowed for this page, or just pick your town from the dropdown.");
+      return;
+    }
+    userLocation = detected;
+    await saveUserLocation();
+    populateLocationSelect();
+    populateBranchSelects();
+    renderProductGrid();
+  });
+
+  $('#searchInput').addEventListener('input', renderProductGrid);
+  $('#categoryFilter').addEventListener('change', ()=>{ activeCategory = $('#categoryFilter').value; populateCatStrip(); renderProductGrid(); });
+  $('#searchGoBtn').addEventListener('click', ()=> switchToView('scan'));
+
+  $('#modalClose').addEventListener('click', ()=> $('#modalOverlay').classList.remove('open'));
+  $('#modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') $('#modalOverlay').classList.remove('open'); });
+
+  $('#sf-category').addEventListener('change', renderSubmitProductOptions);
+  $('#sf-product').addEventListener('change', toggleNewProductRow);
+  $('#sf-store').addEventListener('change', ()=> fillBranchSelect($('#sf-branch'), $('#sf-store').value));
+  $('#ps-store').addEventListener('change', ()=> fillBranchSelect($('#ps-branch'), $('#ps-store').value));
+  $('#scan-store').addEventListener('change', ()=> fillBranchSelect($('#scan-branch'), $('#scan-store').value));
+
+  function priceLooksOffFor(productId, priceVal){
+    const entries = allEntriesForProduct(productId);
+    if(entries.length === 0) return false;
+    const vals = entries.map(e=>e.rec.price);
+    const min = Math.min(...vals), max = Math.max(...vals);
+    return priceVal < min * 0.5 || priceVal > max * 2;
+  }
+
+  $('#sf-submitBtn').addEventListener('click', async ()=>{
+    const store = $('#sf-store').value;
+    const brand = $('#sf-brand').value.trim();
+    const priceVal = parseFloat($('#sf-price').value);
+    if(!priceVal || priceVal <= 0){ alert('Enter a valid price.'); return; }
+
+    let productId = $('#sf-product').value;
+    if(productId === '__new'){
+      const name = $('#sf-newName').value.trim();
+      const unit = $('#sf-newUnit').value.trim() || '';
+      if(!name){ alert('Enter a product name.'); return; }
+
+      const submitBtn = $('#sf-submitBtn');
+      const origText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sorting into a category…';
+      const category = await classifyCategory(name);
+      submitBtn.disabled = false;
+      submitBtn.textContent = origText;
+
+      productId = 'p' + Date.now();
+      products.push({id:productId, name, unit, category});
+      await saveProducts();
+      renderSubmitProductOptions();
+      $('#sf-product').value = productId;
+    } else if(priceLooksOffFor(productId, priceVal)){
+      const proceed = confirm("That price looks very different from other prices we have for this item — are you sure it's correct? Click OK to submit anyway.");
+      if(!proceed) return;
+    }
+
+    const branchVal = $('#sf-branch').value;
+    const [branchTown, branchAddr] = branchVal.includes('|||') ? branchVal.split('|||') : [null,null];
+
+    prices[priceKey(productId, store, brand)] = {price:priceVal, updatedAt:Date.now(), branch:branchAddr||null, town:branchTown||null, confirmCount:0, reportCount:0};
+    const saved = await savePrices();
+    if(!saved){
+      alert("That didn't save — likely a connection hiccup. Please try submitting again before leaving this screen.");
+      return;
+    }
+
+    renderProductGrid();
+    const toast = $('#sf-toast');
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), 3000);
+    $('#sf-price').value = ''; $('#sf-brand').value = '';
+    $('#sf-newName').value = ''; $('#sf-newUnit').value='';
+  });
+
+  $('#branch-submitBtn').addEventListener('click', async ()=>{
+    const store = $('#branch-store').value;
+    const town = $('#branch-town').value.trim();
+    const address = $('#branch-address').value.trim();
+    if(!town || !address){ alert('Fill in both the town and the branch name/address.'); return; }
+
+    if(!userBranches[store]) userBranches[store] = {};
+    if(!userBranches[store][town]) userBranches[store][town] = [];
+    userBranches[store][town].push(address);
+    try{ await window.storage.set('userBranches', JSON.stringify(userBranches), true); }catch(e){}
+
+    if(!allLocations().includes(town)){
+      extraLocations.push(town);
+      try{ await window.storage.set('extraLocations', JSON.stringify(extraLocations), true); }catch(e){}
+    }
+
+    populateLocationSelect();
+    populateStoreSelects();
+    populateBranchSelects();
+
+    const toast = $('#branch-toast');
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), 3000);
+    $('#branch-town').value = ''; $('#branch-address').value = '';
+  });
+
+  // ---------------- Receipt scanning ----------------
+
+  function fileToBase64(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function findProductMatch(name){
+    const n = name.trim().toLowerCase();
+    if(!n) return null;
+    let match = products.find(p=>p.name.toLowerCase()===n);
+    if(match) return match;
+    match = products.find(p=>p.name.toLowerCase().includes(n) || n.includes(p.name.toLowerCase()));
+    return match || null;
+  }
+
+  // ---- Automatic category classification, remembered so we never ask the same question twice ----
+  async function saveCategoryMemory(){
+    try{ await window.storage.set('categoryMemory', JSON.stringify(categoryMemory), true); }catch(e){}
+  }
+
+  async function classifyCategory(productName){
+    const key = productName.trim().toLowerCase();
+    if(!key) return CATEGORIES[0];
+    if(categoryMemory[key]){ return categoryMemory[key]; }
+
+    let category = null;
+    try{
+      const prompt = "Which ONE of these categories does the South African grocery product \"" + productName + "\" best belong to: " + CATEGORIES.join(", ") + "? Respond with ONLY the exact category name from that list, nothing else — no punctuation, no explanation.";
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 20,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+      if(response.ok){
+        const data = await response.json();
+        const text = (data.content || []).map(b=>b.text||'').join('').trim();
+        const found = CATEGORIES.find(c => c.toLowerCase() === text.toLowerCase()) ||
+          CATEGORIES.find(c => text.toLowerCase().includes(c.toLowerCase()));
+        category = found || null;
+      }
+    }catch(e){ category = null; }
+
+    if(!category){ category = CATEGORIES[CATEGORIES.length - 1] === "Health & Wellness" ? "Pantry & Groceries" : CATEGORIES[0]; }
+
+    categoryMemory[key] = category;
+    saveCategoryMemory(); // fire-and-forget, no need to block on this
+    return category;
+  }
+
+  function guessStoreMatch(name){
+    if(!name) return null;
+    const n = name.toLowerCase();
+    return STORES.find(s => n.includes(s.toLowerCase())) ||
+      (n.includes('pnp') ? 'Pick n Pay' : null) ||
+      (n.includes('woolies') ? 'Woolworths' : null) ||
+      null;
+  }
+
+  function guessBranchMatch(store, locationText){
+    if(!locationText) return null;
+    const map = allBranchesFor(store);
+    const needle = locationText.toLowerCase();
+    for(const town of Object.keys(map)){
+      for(const addr of map[town]){
+        if(addr.toLowerCase().includes(needle) || needle.includes(town.toLowerCase())){
+          return { town, addr };
+        }
+      }
+    }
+    return null;
+  }
+
+  // ---- receipt-scan correction memory: learns from edits shoppers make before confirming ----
+  async function saveScanCorrection(entry){
+    scanCorrections.push(entry);
+    if(scanCorrections.length > 50){ scanCorrections = scanCorrections.slice(-50); } // keep it recent and small
+    try{ await window.storage.set('scanCorrections', JSON.stringify(scanCorrections), true); }catch(e){}
+  }
+
+  function buildCorrectionsHint(){
+    if(scanCorrections.length === 0) return '';
+    const recent = scanCorrections.slice(-8);
+    const lines = recent.map(c=>
+      `"${c.name}": misread as R${c.wrongPrice.toFixed(2)}${c.wrongQty && c.wrongQty!==1 ? ' (qty ' + c.wrongQty + ')' : ''}, should have been R${c.rightPrice.toFixed(2)}${c.rightQty && c.rightQty!==1 ? ' (qty ' + c.rightQty + ')' : ''}`
+    ).join('; ');
+    return " Shoppers have corrected these exact misreads on past receipts — watch for the same kind of mistake (e.g. reading a line total instead of the per-item price when a quantity is shown): " + lines + ".";
+  }
+
+  // ---- Image quality enhancement: real, honest accuracy lever — sharpens contrast on faded thermal-paper text ----
+  function enhanceImageFile(file){
+    return new Promise((resolve)=>{
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = ()=>{
+        try{
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          if('filter' in ctx){ ctx.filter = 'contrast(1.18) brightness(1.06) saturate(0.9)'; }
+          ctx.drawImage(img, 0, 0);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+          URL.revokeObjectURL(url);
+          resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
+        }catch(err){
+          URL.revokeObjectURL(url);
+          resolve(null); // fall back to the original file if enhancement fails for any reason
+        }
+      };
+      img.onerror = ()=>{ URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  $('#scan-file').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const preview = $('#scanPreview');
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+    $('#scanGoBtn').style.display = 'inline-block';
+    $('#scanError').style.display = 'none';
+    $('#scanResults').style.display = 'none';
+    try{
+      const enhanced = await enhanceImageFile(file);
+      if(enhanced){
+        scanFileData = enhanced;
+      } else {
+        const base64 = await fileToBase64(file);
+        scanFileData = {base64, mediaType: file.type || 'image/jpeg'};
+      }
+    }catch(err){
+      scanFileData = null;
+    }
+  });
+
+  $('#scan-video').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    scanVideoFile = file;
+    const preview = $('#scanVideoPreview');
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+    $('#scanVideoGoBtn').style.display = 'inline-block';
+    $('#scanError').style.display = 'none';
+    $('#scanResults').style.display = 'none';
+  });
+
+  // Cheap local-contrast proxy for sharpness — higher means more crisp edges, i.e. less motion blur
+  function frameSharpness(ctx, w, h){
+    const step = 6;
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let sum = 0, count = 0;
+    for(let y=0; y<h-step; y+=step){
+      for(let x=0; x<w-step; x+=step){
+        const i1 = (y*w+x)*4;
+        const i2 = (y*w+x+step)*4;
+        const lum1 = data[i1]*0.299 + data[i1+1]*0.587 + data[i1+2]*0.114;
+        const lum2 = data[i2]*0.299 + data[i2+1]*0.587 + data[i2+2]*0.114;
+        sum += Math.abs(lum1-lum2);
+        count++;
+      }
+    }
+    return count ? sum/count : 0;
+  }
+
+  function extractVideoFrames(file, maxFrames){
+    return new Promise((resolve, reject)=>{
+      const video = document.createElement('video');
+      video.preload = 'auto';
+      video.muted = true;
+      video.playsInline = true;
+      const url = URL.createObjectURL(file);
+      video.src = url;
+
+      video.addEventListener('loadedmetadata', async ()=>{
+        try{
+          const duration = video.duration;
+          if(!isFinite(duration) || duration <= 0){ throw new Error('Could not read video length'); }
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth || 720;
+          canvas.height = video.videoHeight || 1280;
+          const ctx = canvas.getContext('2d');
+          if('filter' in ctx){ ctx.filter = 'contrast(1.15) brightness(1.05) saturate(0.9)'; }
+
+          // Oversample candidate frames, score each for sharpness, keep only the crispest ones —
+          // a slow, steady pan still has occasional motion-blur moments this filters out.
+          const candidateCount = Math.min(maxFrames * 2, Math.max(6, Math.ceil(duration * 2)));
+          const candidates = [];
+          for(let i=0; i<candidateCount; i++){
+            const t = (duration * (i + 0.5)) / candidateCount;
+            await new Promise((res)=>{
+              const onSeeked = ()=>{ video.removeEventListener('seeked', onSeeked); res(); };
+              video.addEventListener('seeked', onSeeked);
+              video.currentTime = Math.min(t, Math.max(0, duration - 0.05));
+            });
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const sharpness = frameSharpness(ctx, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            candidates.push({ t, sharpness, base64: dataUrl.split(',')[1] });
+          }
+          URL.revokeObjectURL(url);
+
+          const best = candidates.slice().sort((a,b)=>b.sharpness - a.sharpness).slice(0, maxFrames);
+          best.sort((a,b)=>a.t - b.t); // restore chronological order for the model's dedup logic
+          resolve(best.map(f=>f.base64));
+        }catch(err){ reject(err); }
+      });
+      video.addEventListener('error', ()=> reject(new Error('Could not load that video')));
+    });
+  }
+
+  $('#scanVideoGoBtn').addEventListener('click', async ()=>{
+    if(!scanVideoFile){ return; }
+    const statusEl = $('#scanStatus');
+    const errorEl = $('#scanError');
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Sampling frames from your video…';
+    errorEl.style.display = 'none';
+    $('#scanResults').style.display = 'none';
+    $('#scanVideoGoBtn').disabled = true;
+
+    try{
+      const frames = await extractVideoFrames(scanVideoFile, 8);
+      if(frames.length === 0){ throw new Error('No frames could be extracted'); }
+
+      statusEl.textContent = 'Reading your receipt…';
+
+      const prompt = "These are " + frames.length + " sequential frames sampled from one slow video pan down a single long South African grocery till slip/receipt, taken top to bottom. The frames overlap — the same item may appear in more than one frame — so combine everything into ONE merged list of items with no duplicates. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip, (3) the purchase date, and (4) every purchased line item. For each item, work out the PER-UNIT price actually paid, never a multiplied line total — if a quantity greater than 1 is shown (e.g. '7 x R19.99'), divide the line total by the quantity to get the unit price, and report the quantity as its own field (default 1)." + buildCorrectionsHint() + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines — only actual purchased products.";
+
+      const imageBlocks = frames.map(f => ({ type:"image", source:{ type:"base64", media_type:"image/jpeg", data:f } }));
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1600,
+          messages: [{ role: "user", content: [ ...imageBlocks, { type: "text", text: prompt } ] }]
+        })
+      });
+      if(!response.ok) throw new Error('Request failed: ' + response.status);
+      const data = await response.json();
+      const text = (data.content || []).map(b=>b.text||'').join('');
+      const clean = text.replace(/```json|```/g,'').trim();
+      const parsed = JSON.parse(clean);
+
+      scanParsedItems = Array.isArray(parsed.items) ? parsed.items.filter(it=>it && it.name && typeof it.price !== 'undefined').map(it=>({
+        name: it.name, brand: it.brand || null, price: Number(it.price),
+        quantity: (it.quantity && Number(it.quantity) > 0) ? Math.round(Number(it.quantity)) : 1
+      })) : [];
+      scanParsedMeta = { store: parsed.store || null, location: parsed.location || null, date: parsed.date || null };
+
+      if(scanParsedItems.length === 0){ throw new Error('No items found'); }
+
+      const guessedStore = guessStoreMatch(scanParsedMeta.store);
+      if(guessedStore){ $('#scan-store').value = guessedStore; }
+      fillBranchSelect($('#scan-branch'), $('#scan-store').value);
+
+      $('#scan-locationText').value = scanParsedMeta.location || '';
+      const branchGuess = guessBranchMatch($('#scan-store').value, scanParsedMeta.location);
+      if(branchGuess){
+        $('#scan-branch').value = branchGuess.town + '|||' + branchGuess.addr;
+        $('#scan-newBranchPrompt').style.display = 'none';
+      } else if(scanParsedMeta.location){
+        $('#scan-newBranchTown').value = '';
+        $('#scan-newBranchPrompt').style.display = 'block';
+      } else {
+        $('#scan-newBranchPrompt').style.display = 'none';
+      }
+
+      const todayStr = new Date().toISOString().slice(0,10);
+      $('#scan-date').value = (scanParsedMeta.date && /^\d{4}-\d{2}-\d{2}$/.test(scanParsedMeta.date)) ? scanParsedMeta.date : todayStr;
+
+      await renderScanRows();
+      statusEl.style.display = 'none';
+      $('#scanResults').style.display = 'block';
+    }catch(err){
+      statusEl.style.display = 'none';
+      errorEl.textContent = "Couldn't read that video clearly — try panning slower and steadier over about 10-20 seconds, make sure the receipt stays in frame and well-lit, or use a single photo instead for a shorter slip.";
+      errorEl.style.display = 'block';
+    }finally{
+      $('#scanVideoGoBtn').disabled = false;
+    }
+  });
+
+  $('#scanGoBtn').addEventListener('click', async ()=>{
+    if(!scanFileData){ return; }
+    const statusEl = $('#scanStatus');
+    const errorEl = $('#scanError');
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Reading your receipt…';
+    errorEl.style.display = 'none';
+    $('#scanResults').style.display = 'none';
+    $('#scanGoBtn').disabled = true;
+
+    try{
+      const correctionsHint = buildCorrectionsHint();
+      const prompt = "This is a photo of a South African grocery till slip or receipt. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip (mall name, suburb, address, store number — whatever appears), (3) the purchase date printed on the slip, and (4) every purchased line item. For each item, work out the price actually paid PER UNIT, trying to separate the brand from the generic product description where you can (for example 'CLOVER FCM 2L' -> name: 'Full Cream Milk 2L', brand: 'Clover'). IMPORTANT: many receipts show a quantity multiplied by a unit price on one line (e.g. '7 x R19.99' or 'QTY 3 @ 4.99' followed by a line total like R139.93 or R14.97). Always report the PER-UNIT price the shopper paid for one item, never the multiplied line total — if you see a quantity greater than 1, divide the line total by the quantity to get the unit price. Report the quantity you detected (default 1 if none shown) as its own field so it can be double-checked." + correctionsHint + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines — only actual purchased products.";
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1200,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: scanFileData.mediaType, data: scanFileData.base64 } },
+              { type: "text", text: prompt }
+            ]
+          }]
+        })
+      });
+      if(!response.ok) throw new Error('Request failed: ' + response.status);
+      const data = await response.json();
+      const text = (data.content || []).map(b=>b.text||'').join('');
+      const clean = text.replace(/```json|```/g,'').trim();
+      const parsed = JSON.parse(clean);
+
+      scanParsedItems = Array.isArray(parsed.items) ? parsed.items.filter(it=>it && it.name && typeof it.price !== 'undefined').map(it=>({
+        name: it.name, brand: it.brand || null, price: Number(it.price),
+        quantity: (it.quantity && Number(it.quantity) > 0) ? Math.round(Number(it.quantity)) : 1
+      })) : [];
+      scanParsedMeta = { store: parsed.store || null, location: parsed.location || null, date: parsed.date || null };
+
+      if(scanParsedItems.length === 0){
+        throw new Error('No items found');
+      }
+
+      const guessedStore = guessStoreMatch(scanParsedMeta.store);
+      if(guessedStore){ $('#scan-store').value = guessedStore; }
+      fillBranchSelect($('#scan-branch'), $('#scan-store').value);
+
+      $('#scan-locationText').value = scanParsedMeta.location || '';
+      const branchGuess = guessBranchMatch($('#scan-store').value, scanParsedMeta.location);
+      if(branchGuess){
+        $('#scan-branch').value = branchGuess.town + '|||' + branchGuess.addr;
+        $('#scan-newBranchPrompt').style.display = 'none';
+      } else if(scanParsedMeta.location){
+        $('#scan-newBranchTown').value = '';
+        $('#scan-newBranchPrompt').style.display = 'block';
+      } else {
+        $('#scan-newBranchPrompt').style.display = 'none';
+      }
+
+      const todayStr = new Date().toISOString().slice(0,10);
+      $('#scan-date').value = (scanParsedMeta.date && /^\d{4}-\d{2}-\d{2}$/.test(scanParsedMeta.date)) ? scanParsedMeta.date : todayStr;
+
+      await renderScanRows();
+      statusEl.style.display = 'none';
+      $('#scanResults').style.display = 'block';
+    }catch(err){
+      statusEl.style.display = 'none';
+      errorEl.textContent = "Couldn't read that receipt clearly — try a brighter, flatter photo, or add the price manually instead.";
+      errorEl.style.display = 'block';
+    }finally{
+      $('#scanGoBtn').disabled = false;
+    }
+  });
+
+  async function renderScanRows(){
+    const container = $('#scanRows');
+    container.innerHTML = `<div class="empty">Sorting items into categories…</div>`;
+
+    const withCategory = await Promise.all(scanParsedItems.map(async (item)=>{
+      const match = findProductMatch(item.name);
+      const category = match ? match.category : await classifyCategory(item.name);
+      return Object.assign({}, item, { category, matchName: match ? match.name : null });
+    }));
+    scanParsedItems = withCategory;
+
+    container.innerHTML = scanParsedItems.map((item, idx)=>{
+      const tag = item.matchName ? `<span class="sr-tag">matches ${item.matchName}</span>` : `<span class="sr-tag new">new product</span>`;
+      const catTag = `<span class="sr-tag cat">${item.category}</span>`;
+      const brandVal = (item.brand || '').toString().replace(/"/g,'&quot;');
+      return `
+        <div class="scan-row" data-idx="${idx}">
+          <input type="checkbox" class="sr-include" checked>
+          <input type="text" class="sr-name" value="${(item.name||'').replace(/"/g,'&quot;')}" placeholder="Product">
+          <input type="text" class="sr-brand" value="${brandVal}" placeholder="Brand">
+          <input type="number" class="sr-price" step="0.01" min="0" value="${Number(item.price).toFixed(2)}" title="Price per unit">
+          <input type="number" class="sr-qty" step="1" min="1" value="${item.quantity || 1}" title="Quantity" style="flex:0 0 60px;">
+          ${tag}
+          ${catTag}
+        </div>
+      `;
+    }).join('');
+  }
+
+  $('#scan-addBranchBtn').addEventListener('click', async ()=>{
+    const town = $('#scan-newBranchTown').value.trim();
+    const address = ($('#scan-locationText').value.trim()) || (scanParsedMeta && scanParsedMeta.location) || '';
+    const store = $('#scan-store').value;
+    if(!town){ alert('Enter a town name first.'); return; }
+    if(!address){ alert("Couldn't find the detected address text — try re-scanning."); return; }
+
+    if(!userBranches[store]) userBranches[store] = {};
+    if(!userBranches[store][town]) userBranches[store][town] = [];
+    userBranches[store][town].push(address);
+    try{ await window.storage.set('userBranches', JSON.stringify(userBranches), true); }catch(e){}
+
+    if(!allLocations().includes(town)){
+      extraLocations.push(town);
+      try{ await window.storage.set('extraLocations', JSON.stringify(extraLocations), true); }catch(e){}
+    }
+
+    populateLocationSelect();
+    fillBranchSelect($('#scan-branch'), store);
+    $('#scan-branch').value = town + '|||' + address;
+    $('#scan-newBranchPrompt').style.display = 'none';
+  });
+
+  $('#scanConfirmBtn').addEventListener('click', async ()=>{
+    const store = $('#scan-store').value;
+    const branchVal = $('#scan-branch').value;
+    const [branchTown, branchAddr] = branchVal.includes('|||') ? branchVal.split('|||') : [null,null];
+    const dateVal = $('#scan-date').value;
+    const receiptTimestamp = dateVal ? new Date(dateVal + 'T12:00:00').getTime() : Date.now();
+
+    const rows = $$('.scan-row', $('#scanRows'));
+    let addedCount = 0;
+    const newCorrections = [];
+
+    rows.forEach(row=>{
+      const include = $('.sr-include', row).checked;
+      if(!include) return;
+      const idx = parseInt(row.dataset.idx, 10);
+      const original = scanParsedItems[idx];
+      const name = $('.sr-name', row).value.trim();
+      const brand = $('.sr-brand', row).value.trim();
+      const category = (original && original.category) || CATEGORIES[0];
+      const priceVal = parseFloat($('.sr-price', row).value);
+      const qtyVal = parseInt($('.sr-qty', row).value, 10) || 1;
+      if(!name || !priceVal || priceVal <= 0) return;
+
+      // If the shopper edited the price or quantity we guessed, remember it — helps future scans avoid the same misread.
+      if(original && (Math.abs(original.price - priceVal) > 0.01 || original.quantity !== qtyVal)){
+        newCorrections.push({
+          name: name, wrongPrice: original.price, wrongQty: original.quantity,
+          rightPrice: priceVal, rightQty: qtyVal, correctedAt: Date.now()
+        });
+      }
+
+      let match = findProductMatch(name);
+      let productId;
+      if(match){
+        productId = match.id;
+      } else {
+        productId = 'p' + Date.now() + '_' + Math.floor(Math.random()*1000);
+        products.push({id:productId, name, unit:'', category});
+      }
+      prices[priceKey(productId, store, brand)] = {
+        price: priceVal, updatedAt: receiptTimestamp, branch: branchAddr||null, town: branchTown||null,
+        confirmCount: 0, reportCount: 0, source: 'receipt-scan'
+      };
+      addedCount++;
+    });
+
+    if(addedCount === 0){ return; }
+
+    for(const correction of newCorrections){ await saveScanCorrection(correction); }
+
+    const productsSaved = await saveProducts();
+    const pricesSaved = await savePrices();
+    renderSubmitProductOptions();
+    renderProductGrid();
+
+    if(!productsSaved || !pricesSaved){
+      const errorEl = $('#scanError');
+      errorEl.textContent = "Your items were read correctly, but saving them failed — this usually means a connection hiccup. Please try tapping \"Confirm & add these prices\" again before leaving this screen.";
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const toast = $('#scan-toast');
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), 3000);
+
+    scanFileData = null;
+    scanParsedItems = [];
+    scanParsedMeta = {};
+    $('#scan-file').value = '';
+    $('#scanPreview').style.display = 'none';
+    $('#scanGoBtn').style.display = 'none';
+    $('#scanResults').style.display = 'none';
+    $('#scan-locationText').value = '';
+    $('#scan-newBranchPrompt').style.display = 'none';
+  });
+
+  // ---------------- Retailer gate for specials ----------------
+  async function checkRetailerVerified(){
+    try{
+      const v = await window.storage.get('retailerVerified', false);
+      if(v && v.value === 'true'){
+        $('#ps-gate').style.display = 'none';
+        $('#ps-formWrap').style.display = 'block';
+      }
+    }catch(e){}
+  }
+  $('#ps-unlockBtn').addEventListener('click', async ()=>{
+    const code = $('#ps-code').value.trim();
+    if(code === RETAILER_CODE){
+      $('#ps-gate').style.display = 'none';
+      $('#ps-formWrap').style.display = 'block';
+      $('#ps-codeError').style.display = 'none';
+      try{ await window.storage.set('retailerVerified', 'true', false); }catch(e){}
+    } else {
+      $('#ps-codeError').style.display = 'block';
+    }
+  });
+
+  // ---------------- Admin gate + dashboard ----------------
+  async function checkAdminVerified(){
+    try{
+      const v = await window.storage.get('adminVerified', false);
+      if(v && v.value === 'true'){
+        $('#admin-gate').style.display = 'none';
+        $('#admin-dashboard').style.display = 'block';
+        renderAdminDashboard();
+      }
+    }catch(e){}
+  }
+  $('#adminUnlockBtn').addEventListener('click', async ()=>{
+    const code = $('#admin-code').value.trim();
+    if(code === ADMIN_CODE){
+      $('#admin-gate').style.display = 'none';
+      $('#admin-dashboard').style.display = 'block';
+      $('#admin-codeError').style.display = 'none';
+      try{ await window.storage.set('adminVerified', 'true', false); }catch(e){}
+      renderAdminDashboard();
+    } else {
+      $('#admin-codeError').style.display = 'block';
+    }
+  });
+
+  function renderAdminDashboard(){
+    // ---- Overview stats, computed from shared data only ----
+    const priceKeys = Object.keys(prices);
+    const productsWithPrices = new Set(priceKeys.map(k=>k.split('::')[0])).size;
+    const activeSpecialsCount = specials.filter(sp => new Date(sp.until) >= new Date()).length;
+    const avgRating = appReviews.length ? (appReviews.reduce((s,r)=>s+r.rating,0)/appReviews.length).toFixed(1) : '–';
+    const distinctReviewers = new Set(appReviews.map(r=>r.userId)).size;
+    const userAddedBranchCount = Object.values(userBranches).reduce((sum, townMap)=> sum + Object.values(townMap).reduce((s2,arr)=>s2+arr.length,0), 0);
+
+    $('#admin-stats').innerHTML = `
+      <div class="rp-item"><div class="rp-num">${priceKeys.length}</div><div class="rp-text"><strong>Prices submitted</strong>Across ${productsWithPrices} product${productsWithPrices!==1?'s':''}</div></div>
+      <div class="rp-item"><div class="rp-num">${specials.length}</div><div class="rp-text"><strong>Specials posted</strong>${activeSpecialsCount} currently active</div></div>
+      <div class="rp-item"><div class="rp-num">${appReviews.length}</div><div class="rp-text"><strong>Reviews</strong>${avgRating} average, from ${distinctReviewers} distinct reviewer${distinctReviewers!==1?'s':''}</div></div>
+      <div class="rp-item"><div class="rp-num">${userAddedBranchCount}</div><div class="rp-text"><strong>Branches added</strong>By shoppers, beyond the built-in list</div></div>
+      <div class="rp-item"><div class="rp-num">${scanCorrections.length}</div><div class="rp-text"><strong>Scan corrections</strong>Logged from receipt-scan edits</div></div>
+      <div class="rp-item"><div class="rp-num">${products.length}</div><div class="rp-text"><strong>Products in catalogue</strong>Including shopper-added ones</div></div>
+    `;
+
+    // ---- Prices moderation list ----
+    const priceRows = priceKeys.map(key=>{
+      const {store, brand} = parsePriceKey(key);
+      const productId = key.split('::')[0];
+      const p = products.find(x=>x.id===productId);
+      return { key, store, brand, price: prices[key].price, productName: p ? p.name : productId };
+    }).sort((a,b)=> a.productName.localeCompare(b.productName));
+
+    $('#admin-prices').innerHTML = priceRows.length === 0
+      ? `<div class="empty">No prices submitted yet.</div>`
+      : priceRows.map(r=>`
+        <div class="review-card">
+          <div class="rc-top">
+            <div class="rc-name">${r.productName} — ${r.brand} @ ${r.store}: <strong>${fmtR(r.price)}</strong></div>
+            <button class="tr-remove" data-admin-price-key="${r.key}" title="Remove">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+    // ---- Specials moderation list ----
+    $('#admin-specials').innerHTML = specials.length === 0
+      ? `<div class="empty">No specials posted yet.</div>`
+      : specials.slice().sort((a,b)=>b.createdAt-a.createdAt).map(sp=>`
+        <div class="review-card">
+          <div class="rc-top">
+            <div class="rc-name">${sp.store} — ${sp.brand ? sp.brand+' ' : ''}${sp.product}: ${fmtR(sp.was)} → ${fmtR(sp.now)} (until ${sp.until})</div>
+            <button class="tr-remove" data-admin-special-id="${sp.id}" title="Remove">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+    // ---- Reviews moderation list ----
+    $('#admin-reviews').innerHTML = appReviews.length === 0
+      ? `<div class="empty">No reviews yet.</div>`
+      : appReviews.slice().sort((a,b)=>b.date-a.date).map(r=>`
+        <div class="review-card">
+          <div class="rc-top">
+            <div class="rc-name">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)} — ${r.name}${r.comment ? ': '+r.comment : ''}</div>
+            <button class="tr-remove" data-admin-review-id="${r.id}" title="Remove">✕</button>
+          </div>
+        </div>
+      `).join('');
+  }
+
+  $('#admin-dashboard').addEventListener('click', async (e)=>{
+    const priceBtn = e.target.closest('[data-admin-price-key]');
+    if(priceBtn){
+      if(!confirm('Remove this price? This affects everyone using the app.')) return;
+      delete prices[priceBtn.dataset.adminPriceKey];
+      await savePrices();
+      renderProductGrid();
+      renderAdminDashboard();
+      return;
+    }
+    const specialBtn = e.target.closest('[data-admin-special-id]');
+    if(specialBtn){
+      if(!confirm('Remove this special?')) return;
+      specials = specials.filter(sp => sp.id !== specialBtn.dataset.adminSpecialId);
+      await saveSpecials();
+      renderSpecials();
+      renderProductGrid();
+      renderAdminDashboard();
+      return;
+    }
+    const reviewBtn = e.target.closest('[data-admin-review-id]');
+    if(reviewBtn){
+      if(!confirm('Remove this review?')) return;
+      appReviews = appReviews.filter(r => r.id !== reviewBtn.dataset.adminReviewId);
+      await saveAppReviews();
+      renderReviews();
+      renderAdminDashboard();
+      return;
+    }
+  });
+
+  $('#ps-submitBtn').addEventListener('click', async ()=>{
+    const store = $('#ps-store').value;
+    const branchVal = $('#ps-branch').value;
+    const branchAddr = branchVal.includes('|||') ? branchVal.split('|||')[1] : '';
+    const brand = $('#ps-brand').value.trim();
+    const product = $('#ps-product').value.trim();
+    const was = parseFloat($('#ps-was').value);
+    const now = parseFloat($('#ps-now').value);
+    const until = $('#ps-until').value;
+    if(!product || !was || !now || !until){ alert('Fill in all fields.'); return; }
+    if(now >= was){ alert('Special price should be lower than the original price.'); return; }
+
+    specials.push({id:'s'+Date.now(), store, branch:branchAddr, brand: brand||null, product, was, now, until, createdAt:Date.now()});
+    await saveSpecials();
+    renderSpecials();
+    renderProductGrid();
+
+    const toast = $('#ps-toast');
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), 3000);
+    $('#ps-product').value=''; $('#ps-brand').value=''; $('#ps-was').value=''; $('#ps-now').value=''; $('#ps-until').value='';
+  });
+
+  initAuthAndApp();
+})();
 </script>
 </body>
 </html>
