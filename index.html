@@ -898,7 +898,8 @@
   const RETAILER_CODE = "PARTNER2026";
   const ADMIN_CODE = "OWNER2026";
 
-  const BRANCHES = {
+  let BRANCHES = {};
+  const DEFAULT_BRANCHES = {
     "Woolworths": {
       "Upington":["Kalahari Mall, 1 Doctor Nelson Mandela Dr, Upington"],
       "Kimberley":["North Cape Mall, 62 Memorial Rd, Royldene, Kimberley"],
@@ -1366,26 +1367,57 @@
     return { productId: parts[0], store: parts[1], brand: parts.slice(2).join("::") || "Unspecified brand" };
   }
 
-  async function loadAll(){
+  async function loadBranchesFromSupabase(){
     try{
-      const p = await window.storage.get('products', true);
-      products = p ? JSON.parse(p.value) : DEFAULT_PRODUCTS;
+      if(!supabaseClient) throw new Error('no-client');
+      const { data, error } = await supabaseClient.from('branches').select('*');
+      if(error || !data || data.length === 0) throw new Error('empty');
+      const grouped = {};
+      data.forEach(row=>{
+        if(!grouped[row.store]) grouped[row.store] = {};
+        if(!grouped[row.store][row.town]) grouped[row.store][row.town] = [];
+        grouped[row.store][row.town].push(row.address);
+      });
+      BRANCHES = grouped;
+    }catch(e){ BRANCHES = DEFAULT_BRANCHES; }
+  }
+
+  async function loadAll(){
+    await loadBranchesFromSupabase();
+
+    try{
+      if(!supabaseClient) throw new Error('no-client');
+      const { data, error } = await supabaseClient.from('products').select('*');
+      if(error || !data || data.length === 0) throw new Error('empty');
+      products = data;
     }catch(e){ products = DEFAULT_PRODUCTS; await saveProducts(); }
 
     try{
-      const pr = await window.storage.get('prices', true);
-      prices = pr ? JSON.parse(pr.value) : DEFAULT_PRICES;
-    }catch(e){ prices = DEFAULT_PRICES; await savePrices(); }
+      if(!supabaseClient) throw new Error('no-client');
+      const { data, error } = await supabaseClient.from('prices').select('*');
+      if(error) throw error;
+      if(!data || data.length === 0){ prices = DEFAULT_PRICES; }
+      else{
+        prices = {};
+        data.forEach(row=>{
+          const key = priceKey(row.product_id, row.store, row.brand);
+          prices[key] = { price: Number(row.price), updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : Date.now(), branch: row.branch || null, town: row.town || null, confirmCount: row.confirm_count || 0, reportCount: row.report_count || 0 };
+        });
+      }
+    }catch(e){ prices = DEFAULT_PRICES; }
 
     try{
-      const sp = await window.storage.get('specials', true);
-      specials = sp ? JSON.parse(sp.value) : DEFAULT_SPECIALS;
+      if(!supabaseClient) throw new Error('no-client');
+      const { data, error } = await supabaseClient.from('specials').select('*');
+      if(error) throw error;
+      specials = (data && data.length) ? data.map(row=>({ id: row.id, store: row.store, branch: row.branch, brand: row.brand, product: row.product, was: Number(row.was), now: Number(row.now), until: row.until, createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now() })) : DEFAULT_SPECIALS;
     }catch(e){ specials = DEFAULT_SPECIALS; }
 
+    // Device-local settings — not shared data, so plain localStorage is the right home for these.
     let hadStoredLocation = true;
     try{
-      const loc = await window.storage.get('userLocation', false);
-      if(loc && loc.value){ userLocation = loc.value; }
+      const loc = localStorage.getItem('skarrel_userLocation');
+      if(loc){ userLocation = loc; }
       else { hadStoredLocation = false; userLocation = "All areas"; }
     }catch(e){ hadStoredLocation = false; userLocation = "All areas"; }
 
@@ -1394,55 +1426,15 @@
       if(detected){ userLocation = detected; await saveUserLocation(); }
     }
 
-    try{
-      const tr = await window.storage.get('trolley', false);
-      trolley = tr ? JSON.parse(tr.value) : [];
-    }catch(e){ trolley = []; }
-
-    try{
-      const sh = await window.storage.get('savingsHistory', false);
-      savingsHistory = sh ? JSON.parse(sh.value) : [];
-    }catch(e){ savingsHistory = []; }
-
-    try{
-      const uid = await window.storage.get('userId', false);
-      if(uid && uid.value){
-        userId = uid.value;
-      } else {
-        userId = 'u'+Date.now()+'_'+Math.floor(Math.random()*100000);
-        await window.storage.set('userId', userId, false);
-      }
-    }catch(e){ userId = 'u'+Date.now()+'_'+Math.floor(Math.random()*100000); }
-
-    try{
-      const up = await window.storage.get('userProfile', false);
-      userProfile = up ? JSON.parse(up.value) : null;
-    }catch(e){ userProfile = null; }
-
-    try{
-      const rv = await window.storage.get('appReviews', true);
-      appReviews = rv ? JSON.parse(rv.value) : [];
-    }catch(e){ appReviews = []; }
-
-    try{
-      const ub = await window.storage.get('userBranches', true);
-      userBranches = ub ? JSON.parse(ub.value) : {};
-    }catch(e){ userBranches = {}; }
-
-    try{
-      const el = await window.storage.get('extraLocations', true);
-      extraLocations = el ? JSON.parse(el.value) : [];
-    }catch(e){ extraLocations = []; }
-
-    try{
-      const sc = await window.storage.get('scanCorrections', true);
-      scanCorrections = sc ? JSON.parse(sc.value) : [];
-    }catch(e){ scanCorrections = []; }
-
-    try{
-      const cm = await window.storage.get('categoryMemory', true);
-      categoryMemory = cm ? JSON.parse(cm.value) : {};
-    }catch(e){ categoryMemory = {}; }
+    // ---- Not yet migrated to Supabase — still session-only until the next stage ----
+    trolley = [];
+    savingsHistory = [];
+    userId = 'u'+Date.now()+'_'+Math.floor(Math.random()*100000);
+    appReviews = [];
+    userBranches = {};
+    extraLocations = [];
+    scanCorrections = [];
+    categoryMemory = {};
 
     populateLocationSelect();
     populateCategoryFilter();
@@ -1462,12 +1454,51 @@
     await checkAdminVerified();
   }
 
-  async function saveProducts(){ try{ await window.storage.set('products', JSON.stringify(products), true); return true; }catch(e){ return false; } }
-  async function savePrices(){ try{ await window.storage.set('prices', JSON.stringify(prices), true); return true; }catch(e){ return false; } }
-  async function saveSpecials(){ try{ await window.storage.set('specials', JSON.stringify(specials), true); return true; }catch(e){ return false; } }
-  async function saveUserLocation(){ try{ await window.storage.set('userLocation', userLocation, false); }catch(e){} }
-  async function saveTrolley(){ try{ await window.storage.set('trolley', JSON.stringify(trolley), false); }catch(e){} }
-  async function saveSavingsHistory(){ try{ await window.storage.set('savingsHistory', JSON.stringify(savingsHistory), false); }catch(e){} }
+  async function saveProducts(){
+    try{
+      if(!supabaseClient || !products.length) return false;
+      const { error } = await supabaseClient.from('products').upsert(products, { onConflict: 'id' });
+      return !error;
+    }catch(e){ return false; }
+  }
+  async function savePrices(){
+    try{
+      if(!supabaseClient) return false;
+      const rows = Object.keys(prices).map(key=>{
+        const { productId, store, brand } = parsePriceKey(key);
+        const r = prices[key];
+        return { product_id: productId, store, brand, price: r.price, updated_at: new Date(r.updatedAt).toISOString(), branch: r.branch, town: r.town, confirm_count: r.confirmCount || 0, report_count: r.reportCount || 0 };
+      });
+      if(!rows.length) return true;
+      const { error } = await supabaseClient.from('prices').upsert(rows, { onConflict: 'product_id,store,brand' });
+      return !error;
+    }catch(e){ return false; }
+  }
+  async function deletePriceRow(key){
+    try{
+      if(!supabaseClient) return;
+      const { productId, store, brand } = parsePriceKey(key);
+      await supabaseClient.from('prices').delete().eq('product_id', productId).eq('store', store).eq('brand', brand);
+    }catch(e){}
+  }
+  async function saveSpecials(){
+    try{
+      if(!supabaseClient) return false;
+      const rows = specials.map(sp=>({ id: sp.id, store: sp.store, branch: sp.branch, brand: sp.brand, product: sp.product, was: sp.was, now: sp.now, until: sp.until, created_at: new Date(sp.createdAt).toISOString() }));
+      if(!rows.length) return true;
+      const { error } = await supabaseClient.from('specials').upsert(rows, { onConflict: 'id' });
+      return !error;
+    }catch(e){ return false; }
+  }
+  async function deleteSpecialRow(id){
+    try{
+      if(!supabaseClient) return;
+      await supabaseClient.from('specials').delete().eq('id', id);
+    }catch(e){}
+  }
+  async function saveUserLocation(){ try{ localStorage.setItem('skarrel_userLocation', userLocation); }catch(e){} }
+  async function saveTrolley(){ /* trolley sync to Supabase lands in the next stage */ }
+  async function saveSavingsHistory(){ /* savings history sync to Supabase lands in the next stage */ }
 
   function allEntriesForProduct(productId){
     const prefix = productId+"::";
@@ -2942,8 +2973,7 @@
   // ---------------- Retailer gate for specials ----------------
   async function checkRetailerVerified(){
     try{
-      const v = await window.storage.get('retailerVerified', false);
-      if(v && v.value === 'true'){
+      if(localStorage.getItem('skarrel_retailerVerified') === 'true'){
         $('#ps-gate').style.display = 'none';
         $('#ps-formWrap').style.display = 'block';
       }
@@ -2955,7 +2985,7 @@
       $('#ps-gate').style.display = 'none';
       $('#ps-formWrap').style.display = 'block';
       $('#ps-codeError').style.display = 'none';
-      try{ await window.storage.set('retailerVerified', 'true', false); }catch(e){}
+      try{ localStorage.setItem('skarrel_retailerVerified', 'true'); }catch(e){}
     } else {
       $('#ps-codeError').style.display = 'block';
     }
@@ -2964,8 +2994,7 @@
   // ---------------- Admin gate + dashboard ----------------
   async function checkAdminVerified(){
     try{
-      const v = await window.storage.get('adminVerified', false);
-      if(v && v.value === 'true'){
+      if(localStorage.getItem('skarrel_adminVerified') === 'true'){
         $('#admin-gate').style.display = 'none';
         $('#admin-dashboard').style.display = 'block';
         renderAdminDashboard();
@@ -2978,7 +3007,7 @@
       $('#admin-gate').style.display = 'none';
       $('#admin-dashboard').style.display = 'block';
       $('#admin-codeError').style.display = 'none';
-      try{ await window.storage.set('adminVerified', 'true', false); }catch(e){}
+      try{ localStorage.setItem('skarrel_adminVerified', 'true'); }catch(e){}
       renderAdminDashboard();
     } else {
       $('#admin-codeError').style.display = 'block';
@@ -3051,8 +3080,8 @@
     const priceBtn = e.target.closest('[data-admin-price-key]');
     if(priceBtn){
       if(!confirm('Remove this price? This affects everyone using the app.')) return;
+      await deletePriceRow(priceBtn.dataset.adminPriceKey);
       delete prices[priceBtn.dataset.adminPriceKey];
-      await savePrices();
       renderProductGrid();
       renderAdminDashboard();
       return;
@@ -3060,8 +3089,8 @@
     const specialBtn = e.target.closest('[data-admin-special-id]');
     if(specialBtn){
       if(!confirm('Remove this special?')) return;
+      await deleteSpecialRow(specialBtn.dataset.adminSpecialId);
       specials = specials.filter(sp => sp.id !== specialBtn.dataset.adminSpecialId);
-      await saveSpecials();
       renderSpecials();
       renderProductGrid();
       renderAdminDashboard();
