@@ -806,6 +806,7 @@
       <input id="login-password" type="password" placeholder="Your password">
       <div class="su-error" id="authLoginError"></div>
       <button class="su-submit" id="authLoginBtn">Log in</button>
+      <button type="button" id="authResendLoginBtn" style="display:none; background:none; border:none; color:var(--value-green); font-weight:700; font-size:12px; text-decoration:underline; cursor:pointer; padding:0; font-family:'Quicksand',sans-serif; margin-top:10px;">Resend confirmation email</button>
       <div class="su-links">
         <button type="button" id="goToSignupBtn">New here? Create an account</button>
       </div>
@@ -822,6 +823,7 @@
       <input id="signup-password" type="password" placeholder="At least 6 characters">
       <div class="su-error" id="authSignupError"></div>
       <button class="su-submit" id="authSignupBtn">Create account</button>
+      <button type="button" id="authResendSignupBtn" style="display:none; background:none; border:none; color:var(--value-green); font-weight:700; font-size:12px; text-decoration:underline; cursor:pointer; padding:0; font-family:'Quicksand',sans-serif; margin-top:10px;">Resend confirmation email</button>
       <div class="su-links">
         <button type="button" id="goToLoginBtn">Already have an account? Log in</button>
       </div>
@@ -2130,7 +2132,29 @@
     $('#signupCloseBtn').style.display = mode === 'account' ? 'block' : 'none';
     $('#authLoginError').style.display = 'none';
     $('#authSignupError').style.display = 'none';
+    $('#authResendLoginBtn').style.display = 'none';
+    $('#authResendSignupBtn').style.display = 'none';
     $('#signupOverlay').style.display = 'flex';
+  }
+
+  async function resendConfirmationEmail(email, btn, errEl){
+    if(!supabaseClient || !email){ return; }
+    const origText = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try{
+      const { error } = await supabaseClient.auth.resend({ type: 'signup', email });
+      errEl.style.color = error ? 'var(--clay)' : 'var(--value-green)';
+      errEl.textContent = error
+        ? "Couldn't resend: " + error.message
+        : "Confirmation email resent to " + email + " — check your inbox (and spam folder).";
+      errEl.style.display = 'block';
+    }catch(err){
+      errEl.style.color = 'var(--clay)';
+      errEl.textContent = 'Unexpected error: ' + err.message;
+      errEl.style.display = 'block';
+    }finally{
+      btn.disabled = false; btn.textContent = origText;
+    }
   }
 
   async function loadPersonalData(){
@@ -2189,10 +2213,12 @@
     try{
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if(error){
-        errEl.textContent = /email not confirmed/i.test(error.message)
+        const isUnconfirmed = /email not confirmed/i.test(error.message);
+        errEl.textContent = isUnconfirmed
           ? "Please confirm your email first — check your inbox for the link we sent when you signed up."
           : 'Login failed: ' + error.message;
         errEl.style.display = 'block';
+        $('#authResendLoginBtn').style.display = isUnconfirmed ? 'inline-block' : 'none';
         return;
       }
       await onAuthedUser(data.user);
@@ -2228,18 +2254,27 @@
       if(data.session){
         await onAuthedUser(data.user);
       } else {
-        $('#signup-name').value = '';
-        $('#signup-email').value = '';
         $('#signup-password').value = '';
         errEl.style.color = 'var(--value-green)';
         errEl.textContent = "Almost there — we've sent a confirmation link to " + email + ". Open it on this device to finish signing up, then come back here.";
         errEl.style.display = 'block';
+        $('#authResendSignupBtn').style.display = 'inline-block';
       }
     }catch(err){
       errEl.textContent = 'Unexpected error: ' + err.message; errEl.style.display = 'block';
     }finally{
       btn.disabled = false; btn.textContent = origText;
     }
+  });
+
+  $('#authResendSignupBtn').addEventListener('click', ()=>{
+    const email = $('#signup-email').value.trim();
+    resendConfirmationEmail(email, $('#authResendSignupBtn'), $('#authSignupError'));
+  });
+
+  $('#authResendLoginBtn').addEventListener('click', ()=>{
+    const email = $('#login-email').value.trim();
+    resendConfirmationEmail(email, $('#authResendLoginBtn'), $('#authLoginError'));
   });
 
   $('#authSignOutBtn').addEventListener('click', async ()=>{
