@@ -2656,7 +2656,7 @@
     let category = null;
     try{
       const prompt = "Which ONE of these categories does the South African grocery product \"" + productName + "\" best belong to: " + CATEGORIES.join(", ") + "? Respond with ONLY the exact category name from that list, nothing else — no punctuation, no explanation.";
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2870,7 +2870,7 @@
 
       const imageBlocks = frames.map(f => ({ type:"image", source:{ type:"base64", media_type:"image/jpeg", data:f } }));
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2894,7 +2894,8 @@
       if(scanParsedItems.length === 0){ throw new Error('No items found'); }
 
       const guessedStore = guessStoreMatch(scanParsedMeta.store);
-      if(guessedStore){ $('#scan-store').value = guessedStore; }
+      if(!guessedStore){ throw new Error('UNSUPPORTED_RETAILER'); }
+      $('#scan-store').value = guessedStore;
       fillBranchSelect($('#scan-branch'), $('#scan-store').value);
 
       $('#scan-locationText').value = scanParsedMeta.location || '';
@@ -2917,7 +2918,9 @@
       $('#scanResults').style.display = 'block';
     }catch(err){
       statusEl.style.display = 'none';
-      errorEl.textContent = "Couldn't read that video clearly — try panning slower and steadier over about 10-20 seconds, make sure the receipt stays in frame and well-lit, or use a single photo instead for a shorter slip.";
+      errorEl.textContent = (err && err.message === 'UNSUPPORTED_RETAILER')
+        ? "This receipt doesn't look like it's from a retailer Skarrel supports (Woolworths, Checkers, Pick n Pay, Shoprite, SPAR, or Food Lover's Market) — so there's nothing to add from it."
+        : "Couldn't read that video clearly — try panning slower and steadier over about 10-20 seconds, make sure the receipt stays in frame and well-lit, or use a single photo instead for a shorter slip.";
       errorEl.style.display = 'block';
     }finally{
       $('#scanVideoGoBtn').disabled = false;
@@ -2937,7 +2940,7 @@
     try{
       const correctionsHint = buildCorrectionsHint();
       const prompt = "This is a photo of a South African grocery till slip or receipt. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip (mall name, suburb, address, store number — whatever appears), (3) the purchase date printed on the slip, and (4) every purchased line item. For each item, work out the price actually paid PER UNIT, trying to separate the brand from the generic product description where you can (for example 'CLOVER FCM 2L' -> name: 'Full Cream Milk 2L', brand: 'Clover'). IMPORTANT: many receipts show a quantity multiplied by a unit price on one line (e.g. '7 x R19.99' or 'QTY 3 @ 4.99' followed by a line total like R139.93 or R14.97). Always report the PER-UNIT price the shopper paid for one item, never the multiplied line total — if you see a quantity greater than 1, divide the line total by the quantity to get the unit price. Report the quantity you detected (default 1 if none shown) as its own field so it can be double-checked." + correctionsHint + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines — only actual purchased products.";
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2969,7 +2972,8 @@
       }
 
       const guessedStore = guessStoreMatch(scanParsedMeta.store);
-      if(guessedStore){ $('#scan-store').value = guessedStore; }
+      if(!guessedStore){ throw new Error('UNSUPPORTED_RETAILER'); }
+      $('#scan-store').value = guessedStore;
       fillBranchSelect($('#scan-branch'), $('#scan-store').value);
 
       $('#scan-locationText').value = scanParsedMeta.location || '';
@@ -2992,7 +2996,9 @@
       $('#scanResults').style.display = 'block';
     }catch(err){
       statusEl.style.display = 'none';
-      errorEl.textContent = "Couldn't read that receipt clearly — try a brighter, flatter photo, or add the price manually instead.";
+      errorEl.textContent = (err && err.message === 'UNSUPPORTED_RETAILER')
+        ? "This receipt doesn't look like it's from a retailer Skarrel supports (Woolworths, Checkers, Pick n Pay, Shoprite, SPAR, or Food Lover's Market) — so there's nothing to add from it."
+        : "Couldn't read that receipt clearly — try a brighter, flatter photo, or add the price manually instead.";
       errorEl.style.display = 'block';
     }finally{
       $('#scanGoBtn').disabled = false;
