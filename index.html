@@ -2726,20 +2726,32 @@
     return " Shoppers have corrected these exact misreads on past receipts — watch for the same kind of mistake (e.g. reading a line total instead of the per-item price when a quantity is shown): " + lines + ".";
   }
 
-  // ---- Image quality enhancement: real, honest accuracy lever — sharpens contrast on faded thermal-paper text ----
-  function enhanceImageFile(file){
+  // ---- Image quality enhancement: resizes down (so uploads stay well under server limits) and sharpens contrast on faded thermal-paper text ----
+  function enhanceImageFile(file, maxDimension, quality){
+    maxDimension = maxDimension || 1600;
+    quality = quality || 0.82;
     return new Promise((resolve)=>{
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = ()=>{
         try{
+          const scale = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.max(1, Math.round(img.naturalWidth * scale));
+          const h = Math.max(1, Math.round(img.naturalHeight * scale));
           const canvas = document.createElement('canvas');
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
+          canvas.width = w;
+          canvas.height = h;
           const ctx = canvas.getContext('2d');
           if('filter' in ctx){ ctx.filter = 'contrast(1.18) brightness(1.06) saturate(0.9)'; }
-          ctx.drawImage(img, 0, 0);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+          ctx.drawImage(img, 0, 0, w, h);
+          let q = quality;
+          let dataUrl = canvas.toDataURL('image/jpeg', q);
+          // Long receipts can still come out large even after resizing — step quality down further if needed
+          // so the upload comfortably clears the server's request-size limit.
+          while(dataUrl.length > 3500000 && q > 0.4){
+            q -= 0.1;
+            dataUrl = canvas.toDataURL('image/jpeg', q);
+          }
           URL.revokeObjectURL(url);
           resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
         }catch(err){
