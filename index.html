@@ -192,10 +192,10 @@
     margin-top:6px; display:inline-block; background:var(--value-green); color:#fff; border:none; border-radius:14px;
     padding:6px 12px; font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; white-space:nowrap;
   }
-  .card-icon{ width:46px; height:46px; border-radius:14px; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:8px; }
+  .card-icon{ width:46px; height:46px; border-radius:14px; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:8px; overflow:hidden; }
   .modal-head-row{ display:flex; align-items:center; gap:14px; }
-  .modal-icon{ width:52px; height:52px; border-radius:16px; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:28px; flex:0 0 auto; }
-  .tr-icon{ width:34px; height:34px; border-radius:10px; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; }
+  .modal-icon{ width:52px; height:52px; border-radius:16px; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:28px; flex:0 0 auto; overflow:hidden; }
+  .tr-icon{ width:34px; height:34px; border-radius:10px; background:var(--paper-dim); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; overflow:hidden; }
 
   .report-month{ background:var(--paper-card); border:1px solid var(--line); border-radius:16px; padding:18px 20px; margin-top:14px; }
   .rm-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
@@ -772,6 +772,11 @@
         <div class="rp-grid" id="admin-stats"></div>
       </div>
 
+      <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Product photos</h3>
+      <p class="sub" style="margin-top:2px;">Pulls real packaging photos from Open Food Facts (a free, open grocery product database) for any product that doesn't have one yet. Safe to re-run any time — it skips products that already have a photo.</p>
+      <button id="fetchPhotosBtn" style="margin-top:12px; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 20px; font-weight:700; font-size:13.5px;">Fetch product photos</button>
+      <p class="sub" id="fetchPhotosStatus" style="display:none; margin-top:10px;"></p>
+
       <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Prices</h3>
       <p class="sub" style="margin-top:2px;">Remove anything that's wrong, spammy, or duplicated.</p>
       <div id="admin-prices"></div>
@@ -873,7 +878,7 @@
 </div>
 
 <footer>
-  <p>SKARREL · PRICES SUBMITTED BY SHOPPERS · SPECIALS POSTED BY VERIFIED RETAILERS · BRANCH LOCATIONS SOURCED FROM PUBLIC MAP LISTINGS — ALWAYS CONFIRM AT TILL</p>
+  <p>SKARREL · PRICES SUBMITTED BY SHOPPERS · SPECIALS POSTED BY VERIFIED RETAILERS · BRANCH LOCATIONS SOURCED FROM PUBLIC MAP LISTINGS · PRODUCT PHOTOS FROM OPEN FOOD FACTS CONTRIBUTORS (CC-BY-SA) — ALWAYS CONFIRM AT TILL</p>
 </footer>
 
 <script>
@@ -1274,6 +1279,19 @@
     return iconFor(products.find(x=>x.id===productId));
   }
 
+  // ---- Real product photos (from Open Food Facts) with an emoji fallback ----
+  function productVisualHtml(product){
+    const emoji = iconFor(product);
+    if(product && product.image_url){
+      const alt = (product.name||'').replace(/"/g,'&quot;');
+      return `<img src="${product.image_url}" alt="${alt}" style="width:100%;height:100%;object-fit:contain;" loading="lazy" onerror="this.parentElement.textContent='${emoji}'">`;
+    }
+    return emoji;
+  }
+  function productVisualHtmlForId(productId){
+    return productVisualHtml(products.find(x=>x.id===productId));
+  }
+
   // Price keys are "productId::store::brand" so several brands per store/product can coexist.
   // Cleared intentionally — prices now only come from real submissions and scanned receipts.
   const DEFAULT_PRICES = {};
@@ -1499,6 +1517,55 @@
     await checkAdminVerified();
   }
 
+  // ---- Real product photos via Open Food Facts (free, no key needed, CC-BY-SA — see footer credit) ----
+  async function searchOpenFoodFacts(productName){
+    try{
+      const query = encodeURIComponent(productName);
+      const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${query}&search_simple=1&action=process&json=1&page_size=5`;
+      const res = await fetch(url);
+      if(!res.ok) return null;
+      const data = await res.json();
+      const list = (data && data.products) || [];
+      const match = list.find(item => item.image_front_url || item.image_url);
+      if(!match) return null;
+      return match.image_front_url || match.image_url || null;
+    }catch(e){ return null; }
+  }
+
+  let photoFetchInProgress = false;
+  async function fetchProductPhotosAll(){
+    if(photoFetchInProgress) return;
+    const btn = $('#fetchPhotosBtn');
+    const statusEl = $('#fetchPhotosStatus');
+    const toFetch = products.filter(p=>!p.image_url);
+    if(toFetch.length === 0){
+      statusEl.textContent = 'Every product already has a photo.';
+      statusEl.style.display = 'block';
+      return;
+    }
+    photoFetchInProgress = true;
+    btn.disabled = true;
+    statusEl.style.display = 'block';
+    let done = 0, found = 0;
+    for(const p of toFetch){
+      statusEl.textContent = `Looking up photo ${done+1} of ${toFetch.length}: ${p.name}…`;
+      const url = await searchOpenFoodFacts(p.name);
+      if(url){ p.image_url = url; found++; }
+      done++;
+      renderProductGrid(); // show photos as they arrive rather than only at the end
+      await new Promise(r=>setTimeout(r, 250)); // gentle pacing on the free API
+    }
+    statusEl.textContent = `Saving ${found} new photo${found!==1?'s':''}…`;
+    const saved = await saveProducts();
+    statusEl.textContent = saved
+      ? `Done — found and saved photos for ${found} of ${toFetch.length} products without one.`
+      : `Found ${found} photos but saving to the database failed — try tapping the button again.`;
+    btn.disabled = false;
+    photoFetchInProgress = false;
+    renderProductGrid();
+    renderAdminDashboard();
+  }
+
   async function saveProducts(){
     try{
       if(!supabaseClient || !products.length) return false;
@@ -1701,7 +1768,7 @@
         <div class="tag-card" data-id="${p.id}">
           ${special ? `<div class="special-flag">Special</div>` : ''}
           ${best ? `<button class="quick-add" data-id="${p.id}" title="Add cheapest to trolley">+</button>` : ''}
-          <div class="card-icon">${iconFor(p)}</div>
+          <div class="card-icon">${productVisualHtml(p)}</div>
           <div class="cat">${p.category}</div>
           <h3>${p.name}</h3>
           <div class="unit">${p.unit}</div>
@@ -1855,7 +1922,7 @@
     const p = products.find(x=>x.id===productId);
     if(!p) return;
     currentModalProductId = productId;
-    $('#m-icon').textContent = iconFor(p);
+    $('#m-icon').innerHTML = productVisualHtml(p);
     $('#m-cat').textContent = p.category;
     $('#m-name').textContent = p.name;
     $('#m-unit').textContent = p.unit;
@@ -1965,7 +2032,7 @@
 
     $('#trolleyList').innerHTML = trolley.map(item=>`
       <div class="trolley-row">
-        <div class="tr-icon">${iconForProductId(item.productId)}</div>
+        <div class="tr-icon">${productVisualHtmlForId(item.productId)}</div>
         <div class="tr-info">
           <div class="tr-name">${item.productName}</div>
           <div class="tr-meta">${item.brand} · ${item.store}${item.unit ? ' · '+item.unit : ''}</div>
@@ -3207,6 +3274,8 @@
     }
   });
 
+  $('#fetchPhotosBtn').addEventListener('click', fetchProductPhotosAll);
+
   function renderAdminDashboard(){
     // ---- Overview stats, computed from shared data only ----
     const priceKeys = Object.keys(prices);
@@ -3214,6 +3283,7 @@
     const activeSpecialsCount = specials.filter(sp => new Date(sp.until) >= new Date()).length;
     const avgRating = appReviews.length ? (appReviews.reduce((s,r)=>s+r.rating,0)/appReviews.length).toFixed(1) : '–';
     const distinctReviewers = new Set(appReviews.map(r=>r.userId)).size;
+    const productsWithPhotos = products.filter(p=>p.image_url).length;
 
     $('#admin-stats').innerHTML = `
       <div class="rp-item"><div class="rp-num">${priceKeys.length}</div><div class="rp-text"><strong>Prices submitted</strong>Across ${productsWithPrices} product${productsWithPrices!==1?'s':''}</div></div>
@@ -3222,6 +3292,7 @@
       <div class="rp-item"><div class="rp-num">${userAddedBranchCount}</div><div class="rp-text"><strong>Branches added</strong>By shoppers, beyond the built-in list</div></div>
       <div class="rp-item"><div class="rp-num">${scanCorrections.length}</div><div class="rp-text"><strong>Scan corrections</strong>Logged from receipt-scan edits</div></div>
       <div class="rp-item"><div class="rp-num">${products.length}</div><div class="rp-text"><strong>Products in catalogue</strong>Including shopper-added ones</div></div>
+      <div class="rp-item"><div class="rp-num">${productsWithPhotos}/${products.length}</div><div class="rp-text"><strong>Products with a real photo</strong>Fetched from Open Food Facts</div></div>
     `;
 
     // ---- Prices moderation list ----
