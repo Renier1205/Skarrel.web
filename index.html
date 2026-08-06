@@ -773,7 +773,7 @@
       </div>
 
       <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Product photos</h3>
-      <p class="sub" style="margin-top:2px;">Pulls real packaging photos from Open Food Facts (a free, open grocery product database) for any product that doesn't have one yet. Safe to re-run any time — it skips products that already have a photo.</p>
+      <p class="sub" style="margin-top:2px;">Pulls real packaging photos from Open Food Facts (a free, open grocery product database) for any product that doesn't have one yet. Skips Fruit & Veg on purpose — those items don't come in branded packaging, so they keep their icon instead of a mismatched photo. Safe to re-run any time.</p>
       <button id="fetchPhotosBtn" style="margin-top:12px; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 20px; font-weight:700; font-size:13.5px;">Fetch product photos</button>
       <p class="sub" id="fetchPhotosStatus" style="display:none; margin-top:10px;"></p>
 
@@ -874,6 +874,13 @@
     <p style="font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.55; margin-top:10px;">👍 confirm a price that's still right, 🚩 report one that's wrong — enough reports flags it as disputed. Prices unconfirmed for 3+ weeks are marked as possibly outdated.</p>
     <div class="price-list" id="m-rows"></div>
     <div class="loc-note" id="m-loc-note"></div>
+  </div>
+</div>
+
+<div class="overlay" id="photoLightboxOverlay">
+  <div class="modal" style="max-width:520px; text-align:center; padding:20px; box-shadow:none; background:transparent;">
+    <button class="close" id="photoLightboxClose" style="background:var(--paper-card);">✕</button>
+    <img id="photoLightboxImg" src="" alt="" style="max-width:100%; max-height:78vh; object-fit:contain; border-radius:14px; margin-top:10px; box-shadow:0 20px 50px rgba(0,0,0,.4); background:var(--paper-card);">
   </div>
 </div>
 
@@ -1284,7 +1291,7 @@
     const emoji = iconFor(product);
     if(product && product.image_url){
       const alt = (product.name||'').replace(/"/g,'&quot;');
-      return `<img src="${product.image_url}" alt="${alt}" style="width:100%;height:100%;object-fit:contain;" loading="lazy" onerror="this.parentElement.textContent='${emoji}'">`;
+      return `<img class="product-photo" src="${product.image_url}" alt="${alt}" style="width:100%;height:100%;object-fit:contain;cursor:pointer;" loading="lazy" onerror="this.parentElement.textContent='${emoji}'">`;
     }
     return emoji;
   }
@@ -1533,13 +1540,26 @@
   }
 
   let photoFetchInProgress = false;
+  // Categories where items are generic/unbranded (no specific product to photograph) —
+  // Open Food Facts photos are of specific packaged products, so pinning one to "Broccoli"
+  // would misrepresent it. These stay on their emoji icon instead.
+  const UNBRANDED_CATEGORIES = ["Fruit & Veg"];
+
   async function fetchProductPhotosAll(){
     if(photoFetchInProgress) return;
     const btn = $('#fetchPhotosBtn');
     const statusEl = $('#fetchPhotosStatus');
-    const toFetch = products.filter(p=>!p.image_url);
+
+    // Clear out any photo an unbranded item may have picked up from an earlier run.
+    let cleared = 0;
+    products.forEach(p=>{
+      if(UNBRANDED_CATEGORIES.includes(p.category) && p.image_url){ p.image_url = null; cleared++; }
+    });
+
+    const toFetch = products.filter(p=>!p.image_url && !UNBRANDED_CATEGORIES.includes(p.category));
     if(toFetch.length === 0){
-      statusEl.textContent = 'Every product already has a photo.';
+      if(cleared > 0){ await saveProducts(); renderProductGrid(); }
+      statusEl.textContent = 'Every eligible product already has a photo.';
       statusEl.style.display = 'block';
       return;
     }
@@ -1788,6 +1808,12 @@
 
   // one-time delegated listener: survives re-renders since #productGrid itself never gets replaced
   $('#productGrid').addEventListener('click', (e)=>{
+    const photo = e.target.closest('.product-photo');
+    if(photo){
+      e.stopPropagation();
+      openPhotoLightbox(photo.src, photo.alt);
+      return;
+    }
     const qa = e.target.closest('.quick-add');
     if(qa){
       e.stopPropagation();
@@ -1796,6 +1822,20 @@
     }
     const card = e.target.closest('.tag-card');
     if(card) openModal(card.dataset.id);
+  });
+
+  // ---- Fullscreen photo lightbox — reused for the grid, the product pop-up, and the trolley ----
+  function openPhotoLightbox(src, alt){
+    if(!src) return;
+    $('#photoLightboxImg').src = src;
+    $('#photoLightboxImg').alt = alt || '';
+    $('#photoLightboxOverlay').classList.add('open');
+  }
+  $('#photoLightboxClose').addEventListener('click', ()=> $('#photoLightboxOverlay').classList.remove('open'));
+  $('#photoLightboxOverlay').addEventListener('click', (e)=>{ if(e.target.id==='photoLightboxOverlay') $('#photoLightboxOverlay').classList.remove('open'); });
+  $('#m-icon').addEventListener('click', ()=>{
+    const img = $('#m-icon img');
+    if(img) openPhotoLightbox(img.src, img.alt);
   });
 
   function populateLocationFilter(productId){
@@ -2113,6 +2153,8 @@
   });
 
   $('#trolleyList').addEventListener('click', async (e)=>{
+    const photo = e.target.closest('.product-photo');
+    if(photo){ openPhotoLightbox(photo.src, photo.alt); return; }
     const btn = e.target.closest('.tr-remove');
     if(!btn) return;
     trolley = trolley.filter(t=>t.id !== btn.dataset.tid);
