@@ -432,7 +432,7 @@
         <button data-view="scan">Scan receipt</button>
         <button data-view="post-special">Post a special</button>
         <button data-view="reviews">Reviews</button>
-        <button data-view="admin">Admin</button>
+        <button data-view="admin" id="adminNavBtn" style="display:none;">Admin</button>
       </nav>
     </div>
   </div>
@@ -3392,6 +3392,21 @@
     setTimeout(()=>toast.classList.remove('show'), 3000);
     $('#ps-product').value=''; $('#ps-brand').value=''; $('#ps-was').value=''; $('#ps-now').value=''; $('#ps-until').value='';
   });
+
+  // ---- Admin tab visibility: hidden from everyone by default, only revealed on a device that's
+  // visited the site once with ?admin=1 in the URL — after that it's remembered on that device. ----
+  function initAdminTabVisibility(){
+    try{
+      const params = new URLSearchParams(window.location.search);
+      const wantsAdmin = params.get('admin') === '1';
+      const alreadyShown = localStorage.getItem('skarrel_showAdminTab') === 'true';
+      if(wantsAdmin || alreadyShown){
+        $('#adminNavBtn').style.display = '';
+        if(wantsAdmin){ localStorage.setItem('skarrel_showAdminTab', 'true'); }
+      }
+    }catch(e){}
+  }
+  initAdminTabVisibility();
 
   initAuthAndApp();
 })();
