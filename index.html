@@ -823,7 +823,7 @@
       <h2>Welcome to Skarrel</h2>
       <p class="sub">Sign up with your email to start comparing, saving, and tracking what you've saved.</p>
       <label>Your name</label>
-      <input id="signup-name" type="text" placeholder="e.g. Renier">
+      <input id="signup-name" type="text" placeholder="e.g. John">
       <label>Email</label>
       <input id="signup-email" type="email" placeholder="you@example.com">
       <label>Password</label>
@@ -1681,11 +1681,13 @@
     let list = products.filter(p=>{
       const matchesQ = !q || p.name.toLowerCase().includes(q);
       const matchesCat = !cat || p.category === cat;
-      return matchesQ && matchesCat;
+      const matchesLocation = userLocation === "All areas" || localEntriesForProduct(p.id, userLocation).length > 0;
+      return matchesQ && matchesCat && matchesLocation;
     });
 
     if(list.length === 0){
-      grid.innerHTML = `<div class="empty">No products match yet. Be the first to <strong>add a price</strong> for it.</div>`;
+      const locationHint = userLocation !== "All areas" ? ` in ${userLocation} yet` : '';
+      grid.innerHTML = `<div class="empty">No products with prices${locationHint}. Be the first to <strong>add a price</strong> for one, or switch to "All areas" up top to browse everything.</div>`;
       return;
     }
 
