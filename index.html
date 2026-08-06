@@ -1324,7 +1324,8 @@
       Object.keys(storeMap).forEach(t=> townSet.add(t));
     });
     extraLocations.forEach(t=> townSet.add(t));
-    return Array.from(townSet);
+    const towns = Array.from(townSet).filter(t=>t!=="All areas").sort((a,b)=>a.localeCompare(b));
+    return ["All areas", ...towns];
   }
   function allBranchesFor(store){
     const merged = {};
