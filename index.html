@@ -306,6 +306,9 @@
   .scan-drop .pick-btn.video-btn{ background:var(--value-green); }
   .scan-drop p{ font-family:'Quicksand',sans-serif; font-weight:600; font-size:13px; opacity:.6; margin-top:10px; }
   .scan-drop p.scan-or{ font-family:'Caveat',cursive; font-weight:600; font-size:16px; opacity:.6; margin:20px 0 12px; border-top:1px dashed var(--line); padding-top:16px; }
+  #scanCropBox{ cursor:move; }
+  .crop-handle{ cursor:pointer; }
+  .crop-handle span{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:16px; height:16px; border-radius:50%; background:var(--clay); border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35); display:block; }
   .scan-preview{ margin-top:16px; max-width:220px; max-height:280px; border-radius:14px; box-shadow:0 10px 20px rgba(40,30,15,.25); display:none; }
   .scan-go{ margin-top:16px; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 22px; font-weight:700; font-size:13.5px; display:none; cursor:pointer; }
   .scan-status{ font-family:'Caveat',cursive; font-weight:700; font-size:16px; margin-top:12px; display:none; color:var(--clay); }
@@ -594,7 +597,34 @@
       <label class="pick-btn" for="scan-file">📷 Choose or take a photo</label>
       <input type="file" id="scan-file" accept="image/*" capture="environment">
       <p>JPG or PNG · your slip, your prices<br>Tip: flatten the receipt on a plain, matte surface (not marble, tile, or anything glossy/patterned) — shiny or busy backgrounds can bleed through thin receipt paper and confuse the reader.</p>
+      <p id="scanAutoCropStatus" style="display:none; font-family:'Caveat',cursive; font-weight:700; font-size:16px; color:var(--clay); margin-top:10px;"></p>
+
+      <div id="scanCropWrap" style="display:none; margin-top:16px;">
+        <p style="font-family:'Caveat',cursive; font-weight:600; font-size:16px; opacity:.75; margin-bottom:10px;">Drag the corners so the box hugs just the slip, then confirm.</p>
+        <div id="scanCropStage" style="position:relative; max-width:280px; margin:0 auto; touch-action:none; -webkit-user-select:none; user-select:none; border-radius:8px; overflow:hidden;">
+          <img id="scanCropImg" style="width:100%; display:block; pointer-events:none;" draggable="false">
+          <div id="scanCropMaskTop" style="position:absolute; left:0; right:0; top:0; background:rgba(74,59,45,.55); pointer-events:none;"></div>
+          <div id="scanCropMaskBottom" style="position:absolute; left:0; right:0; bottom:0; background:rgba(74,59,45,.55); pointer-events:none;"></div>
+          <div id="scanCropMaskLeft" style="position:absolute; background:rgba(74,59,45,.55); pointer-events:none;"></div>
+          <div id="scanCropMaskRight" style="position:absolute; background:rgba(74,59,45,.55); pointer-events:none;"></div>
+          <div id="scanCropBox" style="position:absolute; border:2px solid var(--clay); box-sizing:border-box; touch-action:none;">
+            <div class="crop-handle" data-corner="tl" style="position:absolute; top:-14px; left:-14px; width:28px; height:28px; touch-action:none;"><span></span></div>
+            <div class="crop-handle" data-corner="tr" style="position:absolute; top:-14px; right:-14px; width:28px; height:28px; touch-action:none;"><span></span></div>
+            <div class="crop-handle" data-corner="bl" style="position:absolute; bottom:-14px; left:-14px; width:28px; height:28px; touch-action:none;"><span></span></div>
+            <div class="crop-handle" data-corner="br" style="position:absolute; bottom:-14px; right:-14px; width:28px; height:28px; touch-action:none;"><span></span></div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px;">
+          <button id="scanCropConfirmBtn" type="button" style="background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 20px; font-weight:700; font-size:13.5px;">✂️ Crop & continue</button>
+          <button id="scanCropSkipBtn" type="button" style="background:transparent; border:1.5px solid var(--line); color:var(--ink); border-radius:12px; padding:11px 20px; font-weight:700; font-size:13.5px;">Use full photo instead</button>
+        </div>
+      </div>
+
       <img id="scanPreview" class="scan-preview">
+      <div id="scanAdjustCropRow" style="display:none; margin:8px 0 4px;">
+        <button id="scanAdjustCropBtn" type="button" style="background:none; border:none; color:var(--value-green); font-family:'Quicksand',sans-serif; font-weight:700; font-size:12.5px; text-decoration:underline; cursor:pointer; padding:0;">✏️ Not right? Adjust crop</button>
+        <div id="scanAdjustCropNote" style="font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.55; margin-top:4px;"></div>
+      </div>
       <br>
       <button id="scanGoBtn" class="scan-go">Read this receipt</button>
 
@@ -2913,9 +2943,100 @@
     });
   }
 
-  $('#scan-file').addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
+  // ---- Automatic receipt-edge detection: receipts are consistently pale/white thermal paper
+  // against a table, tile, wood, or marble background that's almost always darker or less
+  // uniform than the paper. We sample the photo's outer border as a stand-in for "background
+  // brightness", then find the largest region that's clearly brighter than that — that's the
+  // receipt. This runs automatically so shoppers don't have to crop by hand; the manual drag
+  // tool becomes a fallback for the cases this heuristic gets wrong (e.g. a very bright table,
+  // or the receipt already filling the whole frame). ----
+  function detectReceiptBounds(img){
+    const maxDim = 320;
+    const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * scale));
+    const h = Math.max(1, Math.round(img.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, w, h);
+    let data;
+    try{ data = ctx.getImageData(0, 0, w, h).data; }catch(e){ return null; } // canvas may be tainted on some hosts
+
+    const lum = new Float32Array(w * h);
+    for(let i = 0; i < w * h; i++){
+      lum[i] = 0.299*data[i*4] + 0.587*data[i*4+1] + 0.114*data[i*4+2];
+    }
+
+    // Sample a thin border frame as the background brightness estimate
+    const bw = Math.max(2, Math.round(w * 0.04));
+    const bh = Math.max(2, Math.round(h * 0.04));
+    const borderVals = [];
+    for(let x = 0; x < w; x++){
+      for(let y = 0; y < bh; y++) borderVals.push(lum[y*w+x]);
+      for(let y = h-bh; y < h; y++) borderVals.push(lum[y*w+x]);
+    }
+    for(let y = 0; y < h; y++){
+      for(let x = 0; x < bw; x++) borderVals.push(lum[y*w+x]);
+      for(let x = w-bw; x < w; x++) borderVals.push(lum[y*w+x]);
+    }
+    borderVals.sort((a,b)=>a-b);
+    const bgMedian = borderVals[Math.floor(borderVals.length/2)];
+
+    let maxL = 0;
+    for(let i = 0; i < lum.length; i++){ if(lum[i] > maxL) maxL = lum[i]; }
+    const threshold = bgMedian + Math.max(16, (maxL - bgMedian) * 0.26);
+
+    const colCount = new Float32Array(w);
+    const rowCount = new Float32Array(h);
+    for(let y = 0; y < h; y++){
+      for(let x = 0; x < w; x++){
+        if(lum[y*w+x] > threshold){ colCount[x]++; rowCount[y]++; }
+      }
+    }
+
+    function findRange(counts, total, minFrac){
+      const need = total * minFrac;
+      let start = -1, end = -1;
+      for(let i = 0; i < counts.length; i++){
+        if(counts[i] >= need){ if(start === -1) start = i; end = i; }
+      }
+      return { start, end };
+    }
+
+    const rowRange = findRange(rowCount, w, 0.16);
+    const colRange = findRange(colCount, h, 0.16);
+    if(rowRange.start === -1 || colRange.start === -1) return null;
+
+    let bx = colRange.start, by = rowRange.start;
+    let bw2 = colRange.end - colRange.start + 1;
+    let bh2 = rowRange.end - rowRange.start + 1;
+
+    // Bail out if the "detected" region is basically the whole frame (no real edges to find,
+    // e.g. the receipt already fills the shot) or implausibly small (noise, not a receipt)
+    const coverage = (bw2 * bh2) / (w * h);
+    if(coverage > 0.95 || coverage < 0.03) return null;
+
+    const padX = bw2 * 0.03, padY = bh2 * 0.02;
+    bx = Math.max(0, bx - padX);
+    by = Math.max(0, by - padY);
+    bw2 = Math.min(w - bx, bw2 + padX*2);
+    bh2 = Math.min(h - by, bh2 + padY*2);
+
+    return { xFrac: bx/w, yFrac: by/h, wFrac: bw2/w, hFrac: bh2/h };
+  }
+
+  function loadImageFromFile(file){
+    return new Promise((resolve, reject)=>{
+      const img = new Image();
+      img.onload = ()=> resolve(img);
+      img.onerror = ()=> reject(new Error('Could not load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  // ---- Takes a (possibly already-cropped) receipt file and runs it through the existing
+  // enhance -> preview -> ready-to-read pipeline. ----
+  async function processReceiptFile(file){
     const preview = $('#scanPreview');
     preview.src = URL.createObjectURL(file);
     preview.style.display = 'block';
@@ -2933,6 +3054,225 @@
     }catch(err){
       scanFileData = null;
     }
+  }
+
+  // ---- Entry point for a freshly chosen photo: try to find and crop to the receipt
+  // automatically first, and only fall back to asking the shopper to crop by hand if that
+  // doesn't work out. The manual tool stays available afterwards via "Adjust crop" either way. ----
+  let cropOriginalFile = null;
+  let cropDetectedFrac = null;
+
+  async function handleSelectedFile(file){
+    cropOriginalFile = file;
+    cropDetectedFrac = null;
+    $('#scanError').style.display = 'none';
+    $('#scanResults').style.display = 'none';
+    $('#scanCropWrap').style.display = 'none';
+    $('#scanAdjustCropRow').style.display = 'none';
+
+    const statusEl = $('#scanAutoCropStatus');
+    statusEl.textContent = '🔍 Finding the receipt in your photo…';
+    statusEl.style.display = 'block';
+
+    let fileToProcess = file;
+    let bounds = null;
+    try{
+      const img = await loadImageFromFile(file);
+      bounds = detectReceiptBounds(img);
+      if(bounds){
+        cropDetectedFrac = bounds;
+        const sx = Math.round(bounds.xFrac * img.naturalWidth);
+        const sy = Math.round(bounds.yFrac * img.naturalHeight);
+        const sw = Math.round(bounds.wFrac * img.naturalWidth);
+        const sh = Math.round(bounds.hFrac * img.naturalHeight);
+        const canvas = document.createElement('canvas');
+        canvas.width = sw; canvas.height = sh;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+        if(blob){ fileToProcess = new File([blob], 'receipt-autocrop.jpg', { type: 'image/jpeg' }); }
+      }
+    }catch(err){
+      bounds = null; // fall through and just use the original photo untouched
+    }
+
+    statusEl.style.display = 'none';
+    await processReceiptFile(fileToProcess);
+
+    $('#scanAdjustCropRow').style.display = 'block';
+    $('#scanAdjustCropNote').textContent = bounds
+      ? 'Cropped automatically — tap above if it missed the edges.'
+      : "Couldn't find a clear edge automatically (busy background, or the slip already fills the frame) — using the full photo. Tap above to crop it by hand if the read comes back wrong.";
+  }
+
+  // ---- Manual crop tool: the fallback/adjustment path. Pre-fills with whatever the automatic
+  // pass detected (if anything) so adjusting is a nudge, not starting from scratch. ----
+  let cropNaturalW = 0, cropNaturalH = 0;
+  let cropBox = { x: 0, y: 0, w: 0, h: 0 }; // in stage (displayed) pixels
+  let cropDrag = null; // { mode:'move'|corner, startX, startY, startBox }
+
+  function cropStageEl(){ return $('#scanCropStage'); }
+
+  function clampCropBox(box, stageW, stageH){
+    const minSize = 30;
+    let { x, y, w, h } = box;
+    w = Math.max(minSize, Math.min(w, stageW));
+    h = Math.max(minSize, Math.min(h, stageH));
+    x = Math.max(0, Math.min(x, stageW - w));
+    y = Math.max(0, Math.min(y, stageH - h));
+    return { x, y, w, h };
+  }
+
+  function renderCropBox(){
+    const stage = cropStageEl();
+    const stageW = stage.clientWidth, stageH = stage.clientHeight;
+    const b = cropBox;
+    const boxEl = $('#scanCropBox');
+    boxEl.style.left = b.x + 'px';
+    boxEl.style.top = b.y + 'px';
+    boxEl.style.width = b.w + 'px';
+    boxEl.style.height = b.h + 'px';
+    // dim everything outside the box so the crop area is obvious at a glance
+    $('#scanCropMaskTop').style.height = b.y + 'px';
+    $('#scanCropMaskTop').style.top = '0px';
+    $('#scanCropMaskBottom').style.top = (b.y + b.h) + 'px';
+    $('#scanCropMaskBottom').style.height = Math.max(0, stageH - (b.y + b.h)) + 'px';
+    $('#scanCropMaskLeft').style.top = b.y + 'px';
+    $('#scanCropMaskLeft').style.height = b.h + 'px';
+    $('#scanCropMaskLeft').style.left = '0px';
+    $('#scanCropMaskLeft').style.width = b.x + 'px';
+    $('#scanCropMaskRight').style.top = b.y + 'px';
+    $('#scanCropMaskRight').style.height = b.h + 'px';
+    $('#scanCropMaskRight').style.left = (b.x + b.w) + 'px';
+    $('#scanCropMaskRight').style.width = Math.max(0, stageW - (b.x + b.w)) + 'px';
+  }
+
+  function openCropUI(file, fracBox){
+    cropOriginalFile = file;
+    const img = $('#scanCropImg');
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      cropNaturalW = img.naturalWidth;
+      cropNaturalH = img.naturalHeight;
+      requestAnimationFrame(()=>{
+        const stage = cropStageEl();
+        const stageW = stage.clientWidth, stageH = stage.clientHeight;
+        let box;
+        if(fracBox){
+          box = { x: fracBox.xFrac*stageW, y: fracBox.yFrac*stageH, w: fracBox.wFrac*stageW, h: fracBox.hFrac*stageH };
+        } else {
+          // No prior detection to start from — a narrow, tall inset, since receipts are
+          // consistently this shape, means less dragging than starting from the full frame.
+          const w = stageW * 0.7;
+          const h = Math.min(stageH * 0.94, stageH);
+          box = { x: (stageW - w) / 2, y: (stageH - h) / 2, w, h };
+        }
+        cropBox = clampCropBox(box, stageW, stageH);
+        renderCropBox();
+      });
+    };
+    img.src = url;
+    $('#scanCropWrap').style.display = 'block';
+    $('#scanAdjustCropRow').style.display = 'none';
+  }
+
+  function closeCropUI(){
+    $('#scanCropWrap').style.display = 'none';
+  }
+
+  function pointFromEvent(e){
+    return { x: (e.touches ? e.touches[0].clientX : e.clientX), y: (e.touches ? e.touches[0].clientY : e.clientY) };
+  }
+
+  function startCropDrag(mode, e){
+    e.preventDefault();
+    const p = pointFromEvent(e);
+    cropDrag = { mode, startX: p.x, startY: p.y, startBox: Object.assign({}, cropBox) };
+  }
+
+  function onCropDragMove(e){
+    if(!cropDrag) return;
+    e.preventDefault();
+    const stage = cropStageEl();
+    const stageW = stage.clientWidth, stageH = stage.clientHeight;
+    const p = pointFromEvent(e);
+    const dx = p.x - cropDrag.startX, dy = p.y - cropDrag.startY;
+    const start = cropDrag.startBox;
+    let next = Object.assign({}, start);
+
+    if(cropDrag.mode === 'move'){
+      next.x = start.x + dx;
+      next.y = start.y + dy;
+    } else {
+      // corner resize — each corner moves two edges, opposite edges stay put
+      if(cropDrag.mode === 'tl'){ next.x = start.x + dx; next.y = start.y + dy; next.w = start.w - dx; next.h = start.h - dy; }
+      if(cropDrag.mode === 'tr'){ next.y = start.y + dy; next.w = start.w + dx; next.h = start.h - dy; }
+      if(cropDrag.mode === 'bl'){ next.x = start.x + dx; next.w = start.w - dx; next.h = start.h + dy; }
+      if(cropDrag.mode === 'br'){ next.w = start.w + dx; next.h = start.h + dy; }
+    }
+    cropBox = clampCropBox(next, stageW, stageH);
+    renderCropBox();
+  }
+
+  function endCropDrag(){ cropDrag = null; }
+
+  $('#scanCropBox').addEventListener('mousedown', (e)=>{ if(e.target.closest('.crop-handle')) return; startCropDrag('move', e); });
+  $('#scanCropBox').addEventListener('touchstart', (e)=>{ if(e.target.closest('.crop-handle')) return; startCropDrag('move', e); }, { passive:false });
+  $$('.crop-handle', $('#scanCropBox')).forEach(handle=>{
+    const corner = handle.dataset.corner;
+    handle.addEventListener('mousedown', (e)=> startCropDrag(corner, e));
+    handle.addEventListener('touchstart', (e)=> startCropDrag(corner, e), { passive:false });
+  });
+  window.addEventListener('mousemove', onCropDragMove);
+  window.addEventListener('touchmove', onCropDragMove, { passive:false });
+  window.addEventListener('mouseup', endCropDrag);
+  window.addEventListener('touchend', endCropDrag);
+
+  $('#scanCropConfirmBtn').addEventListener('click', async ()=>{
+    if(!cropOriginalFile || !cropNaturalW){ return; }
+    const stage = cropStageEl();
+    const stageW = stage.clientWidth, stageH = stage.clientHeight;
+    const scaleX = cropNaturalW / stageW, scaleY = cropNaturalH / stageH;
+    const sx = Math.round(cropBox.x * scaleX);
+    const sy = Math.round(cropBox.y * scaleY);
+    const sw = Math.round(cropBox.w * scaleX);
+    const sh = Math.round(cropBox.h * scaleY);
+
+    const img = $('#scanCropImg');
+    const canvas = document.createElement('canvas');
+    canvas.width = sw;
+    canvas.height = sh;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    canvas.toBlob(async (blob)=>{
+      closeCropUI();
+      if(!blob){ await processReceiptFile(cropOriginalFile); $('#scanAdjustCropRow').style.display = 'block'; return; }
+      const croppedFile = new File([blob], 'receipt-crop.jpg', { type: 'image/jpeg' });
+      await processReceiptFile(croppedFile);
+      $('#scanAdjustCropRow').style.display = 'block';
+      $('#scanAdjustCropNote').textContent = 'Cropped by hand.';
+    }, 'image/jpeg', 0.92);
+  });
+
+  $('#scanCropSkipBtn').addEventListener('click', async ()=>{
+    closeCropUI();
+    if(cropOriginalFile){
+      await processReceiptFile(cropOriginalFile);
+      $('#scanAdjustCropRow').style.display = 'block';
+      $('#scanAdjustCropNote').textContent = 'Using the full, uncropped photo.';
+    }
+  });
+
+  $('#scanAdjustCropBtn').addEventListener('click', ()=>{
+    if(!cropOriginalFile) return;
+    openCropUI(cropOriginalFile, cropDetectedFrac);
+  });
+
+  $('#scan-file').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    await handleSelectedFile(file);
   });
 
   $('#scan-video').addEventListener('change', (e)=>{
@@ -3324,6 +3664,8 @@
     scanFileData = null;
     scanParsedItems = [];
     scanParsedMeta = {};
+    cropOriginalFile = null;
+    cropDetectedFrac = null;
     $('#scan-file').value = '';
     $('#scanPreview').style.display = 'none';
     $('#scanGoBtn').style.display = 'none';
@@ -3331,6 +3673,7 @@
     $('#scan-locationText').value = '';
     $('#scan-newBranchPrompt').style.display = 'none';
     $('#scanTotalWarning').style.display = 'none';
+    $('#scanAdjustCropRow').style.display = 'none';
   });
 
   // ---------------- Retailer gate for specials ----------------
