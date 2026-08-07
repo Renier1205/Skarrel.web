@@ -313,6 +313,7 @@
   .scan-results{ margin-top:24px; display:none; }
   .scan-meta{ margin-top:14px; }
   .scan-error{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:13px; color:var(--clay); margin-top:12px; display:none; }
+  .scan-total-warning{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:12.5px; color:var(--clay); background:var(--clay-soft); border-radius:12px; padding:10px 14px; margin-top:12px; display:none; }
 
   .scan-row{ display:flex; gap:8px; align-items:center; background:var(--paper-card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:8px; flex-wrap:wrap; }
   .scan-row input[type=checkbox]{ width:18px; height:18px; flex:0 0 auto; }
@@ -592,7 +593,7 @@
     <div class="scan-drop">
       <label class="pick-btn" for="scan-file">📷 Choose or take a photo</label>
       <input type="file" id="scan-file" accept="image/*" capture="environment">
-      <p>JPG or PNG · your slip, your prices</p>
+      <p>JPG or PNG · your slip, your prices<br>Tip: flatten the receipt on a plain, matte surface (not marble, tile, or anything glossy/patterned) — shiny or busy backgrounds can bleed through thin receipt paper and confuse the reader.</p>
       <img id="scanPreview" class="scan-preview">
       <br>
       <button id="scanGoBtn" class="scan-go">Read this receipt</button>
@@ -627,6 +628,7 @@
           <button id="scan-addBranchBtn" type="button" style="margin-top:10px; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:9px 16px; font-weight:700; font-size:12.5px;">Add this branch</button>
         </div>
       </div>
+      <div class="scan-total-warning" id="scanTotalWarning"></div>
       <h3 style="font-family:'Baloo 2',sans-serif; font-size:15px; margin-top:16px;">Items found</h3>
       <p style="font-family:'Quicksand',sans-serif; font-weight:600; font-size:11px; opacity:.55; margin-top:2px;">Price is per unit, not the line total — double-check against the quantity shown if a line had more than one of something.</p>
       <div id="scanRows"></div>
@@ -2821,6 +2823,7 @@
     return STORES.find(s => n.includes(s.toLowerCase())) ||
       (n.includes('pnp') ? 'Pick n Pay' : null) ||
       (n.includes('woolies') ? 'Woolworths' : null) ||
+      (n.includes('superspar') || n.includes('kwikspar') ? 'SPAR' : null) ||
       null;
   }
 
@@ -2860,10 +2863,19 @@
     return " Shoppers have corrected these exact misreads on past receipts — watch for the same kind of mistake (e.g. reading a line total instead of the per-item price when a quantity is shown): " + lines + ".";
   }
 
-  // ---- Image quality enhancement: resizes down (so uploads stay well under server limits) and sharpens contrast on faded thermal-paper text ----
+  // ---- Background bleed-through / ghosting hint: told explicitly since some receipts are
+  // photographed on surfaces (glossy tile, another sheet of paper underneath) that let faint
+  // shadow-text show through the thin thermal paper, which can be mistaken for real print. ----
+  const GHOSTING_HINT = " Some receipt photos show a second, much fainter layer of text bleeding through from behind the paper or from a surface underneath (a ghost/shadow of other writing, at much lower contrast than the real print) — this is NOT part of the receipt. Read only the sharpest, darkest, highest-contrast layer of text as the actual receipt content, and ignore any lighter, blurrier, or duplicated-looking text sitting behind or between the real lines.";
+
+  // ---- Image quality enhancement: resizes down (so uploads stay well under server limits) and
+  // sharpens contrast on faded thermal-paper text. Grayscale first, then a stronger contrast
+  // curve — this pushes faint background bleed-through (usually much lighter than real ink)
+  // further toward white while keeping genuine black print dark, instead of amplifying everything
+  // equally the way a plain brightness/contrast filter would. ----
   function enhanceImageFile(file, maxDimension, quality){
     maxDimension = maxDimension || 1600;
-    quality = quality || 0.82;
+    quality = quality || 0.85;
     return new Promise((resolve)=>{
       const img = new Image();
       const url = URL.createObjectURL(file);
@@ -2876,7 +2888,10 @@
           canvas.width = w;
           canvas.height = h;
           const ctx = canvas.getContext('2d');
-          if('filter' in ctx){ ctx.filter = 'contrast(1.18) brightness(1.06) saturate(0.9)'; }
+          // grayscale + a steeper contrast curve than before (was 1.18) — the extra contrast
+          // specifically targets faint bled-through text, which sits closer to the paper's own
+          // brightness than real ink does, so pushing the curve harder separates the two better.
+          if('filter' in ctx){ ctx.filter = 'grayscale(1) contrast(1.45) brightness(1.08)'; }
           ctx.drawImage(img, 0, 0, w, h);
           let q = quality;
           let dataUrl = canvas.toDataURL('image/jpeg', q);
@@ -2967,7 +2982,7 @@
           canvas.width = video.videoWidth || 720;
           canvas.height = video.videoHeight || 1280;
           const ctx = canvas.getContext('2d');
-          if('filter' in ctx){ ctx.filter = 'contrast(1.15) brightness(1.05) saturate(0.9)'; }
+          if('filter' in ctx){ ctx.filter = 'grayscale(1) contrast(1.45) brightness(1.08)'; }
 
           // Oversample candidate frames, score each for sharpness, keep only the crispest ones —
           // a slow, steady pan still has occasional motion-blur moments this filters out.
@@ -3012,7 +3027,7 @@
 
       statusEl.textContent = 'Reading your receipt…';
 
-      const prompt = "These are " + frames.length + " sequential frames sampled from one slow video pan down a single long South African grocery till slip/receipt, taken top to bottom. The frames overlap — the same item may appear in more than one frame — so combine everything into ONE merged list of items with no duplicates. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip, (3) the purchase date, and (4) every purchased line item. For each item, work out the PER-UNIT price actually paid, never a multiplied line total — if a quantity greater than 1 is shown (e.g. '7 x R19.99'), divide the line total by the quantity to get the unit price, and report the quantity as its own field (default 1)." + buildWoolworthsHint() + buildCorrectionsHint() + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines — only actual purchased products.";
+      const prompt = "These are " + frames.length + " sequential frames sampled from one slow video pan down a single long South African grocery till slip/receipt, taken top to bottom. The frames overlap — the same item may appear in more than one frame — so combine everything into ONE merged list of items with no duplicates. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip, (3) the purchase date, (4) the printed TOTAL amount for the whole receipt if shown, and (5) every purchased line item. For each item, work out the PER-UNIT price actually paid, never a multiplied line total — if a quantity greater than 1 is shown (e.g. '7 x R19.99'), divide the line total by the quantity to get the unit price, and report the quantity as its own field (default 1)." + buildWoolworthsHint() + GHOSTING_HINT + buildCorrectionsHint() + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"total\": <printed total as a number, or null if not legible>, \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines as items — only actual purchased products belong in the items array; the total goes only in the separate \"total\" field.";
 
       const imageBlocks = frames.map(f => ({ type:"image", source:{ type:"base64", media_type:"image/jpeg", data:f } }));
 
@@ -3025,17 +3040,20 @@
           messages: [{ role: "user", content: [ ...imageBlocks, { type: "text", text: prompt } ] }]
         })
       });
-      if(!response.ok) throw new Error('Request failed: ' + response.status);
+      if(!response.ok){
+        const errBody = await response.text().catch(()=> '');
+        console.error('Skarrel receipt scan (video): /api/claude returned', response.status, errBody);
+        throw new Error('Request failed: ' + response.status);
+      }
       const data = await response.json();
       const text = (data.content || []).map(b=>b.text||'').join('');
-      const clean = text.replace(/```json|```/g,'').trim();
-      const parsed = JSON.parse(clean);
+      const parsed = parseReceiptJson(text);
 
       scanParsedItems = Array.isArray(parsed.items) ? parsed.items.filter(it=>it && it.name && typeof it.price !== 'undefined').map(it=>({
         name: it.name, brand: it.brand || null, price: Number(it.price),
         quantity: (it.quantity && Number(it.quantity) > 0) ? Math.round(Number(it.quantity)) : 1
       })) : [];
-      scanParsedMeta = { store: parsed.store || null, location: parsed.location || null, date: parsed.date || null };
+      scanParsedMeta = { store: parsed.store || null, location: parsed.location || null, date: parsed.date || null, total: (typeof parsed.total === 'number') ? parsed.total : null };
 
       if(scanParsedItems.length === 0){ throw new Error('No items found'); }
 
@@ -3060,6 +3078,7 @@
       $('#scan-date').value = (scanParsedMeta.date && /^\d{4}-\d{2}-\d{2}$/.test(scanParsedMeta.date)) ? scanParsedMeta.date : todayStr;
 
       await renderScanRows();
+      showTotalWarningIfNeeded();
       statusEl.style.display = 'none';
       $('#scanResults').style.display = 'block';
     }catch(err){
@@ -3078,6 +3097,38 @@
     return " This receipt may be from Woolworths, whose till slips have a few quirks worth knowing: (a) each line starts with a single letter code before the item name (S = standard-rated, Z = zero-rated for VAT) — this letter is not part of the item name, ignore it; (b) a promotional discount shows as a SEPARATE line directly under an item, formatted like 'R64.99 less promo R14.99' — this means the item was originally R64.99 and the promo line's own price already IS the discounted amount the shopper paid, so do NOT create a separate line item for it and do NOT subtract the discount again from the price already shown; (c) many item names begin with a pack-size descriptor such as '6x200ml' or '750ml' (e.g. '6x200ml Tropical Jui') — this describes the pack itself (how many smaller units are inside that ONE pack) and is NOT a purchase-quantity multiplier, so do not divide the shown price by that number; only divide by a quantity when the receipt separately and explicitly shows more than one of that same line was bought (e.g. a distinct 'x2' or 'QTY 2' notation apart from the product's own pack description).";
   }
 
+  // ---- Robust JSON extraction: Claude is told to return ONLY raw JSON, but if a stray
+  // preamble/sentence slips in anyway (more likely on a hard-to-read image), find the JSON
+  // object inside the text rather than failing the whole scan on a strict parse. ----
+  function parseReceiptJson(rawText){
+    const clean = rawText.replace(/```json|```/g,'').trim();
+    try{
+      return JSON.parse(clean);
+    }catch(e){
+      const start = clean.indexOf('{');
+      const end = clean.lastIndexOf('}');
+      if(start !== -1 && end !== -1 && end > start){
+        try{ return JSON.parse(clean.slice(start, end+1)); }catch(e2){}
+      }
+      console.error('Skarrel receipt scan: could not parse a JSON object out of the model response. Raw response:', rawText);
+      throw new Error('BAD_JSON');
+    }
+  }
+
+  function showTotalWarningIfNeeded(){
+    const warnEl = $('#scanTotalWarning');
+    const printedTotal = scanParsedMeta && typeof scanParsedMeta.total === 'number' ? scanParsedMeta.total : null;
+    if(printedTotal === null){ warnEl.style.display = 'none'; return; }
+    const sum = scanParsedItems.reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0);
+    const diff = Math.abs(sum - printedTotal);
+    if(diff > 1){ // more than R1 off — flag it as worth a second look rather than a hard block
+      warnEl.textContent = `Heads up: these items add up to ${fmtR(sum)}, but the receipt's printed total was ${fmtR(printedTotal)}. Double-check the prices below before confirming — a line may have been misread.`;
+      warnEl.style.display = 'block';
+    } else {
+      warnEl.style.display = 'none';
+    }
+  }
+
   $('#scanGoBtn').addEventListener('click', async ()=>{
     if(!scanFileData){ return; }
     const statusEl = $('#scanStatus');
@@ -3090,7 +3141,7 @@
 
     try{
       const correctionsHint = buildCorrectionsHint();
-      const prompt = "This is a photo of a South African grocery till slip or receipt. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip (mall name, suburb, address, store number — whatever appears), (3) the purchase date printed on the slip, and (4) every purchased line item. For each item, work out the price actually paid PER UNIT, trying to separate the brand from the generic product description where you can (for example 'CLOVER FCM 2L' -> name: 'Full Cream Milk 2L', brand: 'Clover'). IMPORTANT: many receipts show a quantity multiplied by a unit price on one line (e.g. '7 x R19.99' or 'QTY 3 @ 4.99' followed by a line total like R139.93 or R14.97). Always report the PER-UNIT price the shopper paid for one item, never the multiplied line total — if you see a quantity greater than 1, divide the line total by the quantity to get the unit price. Report the quantity you detected (default 1 if none shown) as its own field so it can be double-checked." + buildWoolworthsHint() + correctionsHint + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines — only actual purchased products.";
+      const prompt = "This is a photo of a South African grocery till slip or receipt. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip (mall name, suburb, address, store number — whatever appears), (3) the purchase date printed on the slip, (4) the printed TOTAL amount for the whole receipt if shown, and (5) every purchased line item. For each item, work out the price actually paid PER UNIT, trying to separate the brand from the generic product description where you can (for example 'CLOVER FCM 2L' -> name: 'Full Cream Milk 2L', brand: 'Clover'). IMPORTANT: many receipts show a quantity multiplied by a unit price on one line (e.g. '7 x R19.99' or 'QTY 3 @ 4.99' followed by a line total like R139.93 or R14.97). Always report the PER-UNIT price the shopper paid for one item, never the multiplied line total — if you see a quantity greater than 1, divide the line total by the quantity to get the unit price. Report the quantity you detected (default 1 if none shown) as its own field so it can be double-checked." + buildWoolworthsHint() + GHOSTING_HINT + correctionsHint + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"total\": <printed total as a number, or null if not legible>, \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines as items — only actual purchased products belong in the items array; the total goes only in the separate \"total\" field.";
       const response = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3106,17 +3157,20 @@
           }]
         })
       });
-      if(!response.ok) throw new Error('Request failed: ' + response.status);
+      if(!response.ok){
+        const errBody = await response.text().catch(()=> '');
+        console.error('Skarrel receipt scan: /api/claude returned', response.status, errBody);
+        throw new Error('Request failed: ' + response.status);
+      }
       const data = await response.json();
       const text = (data.content || []).map(b=>b.text||'').join('');
-      const clean = text.replace(/```json|```/g,'').trim();
-      const parsed = JSON.parse(clean);
+      const parsed = parseReceiptJson(text);
 
       scanParsedItems = Array.isArray(parsed.items) ? parsed.items.filter(it=>it && it.name && typeof it.price !== 'undefined').map(it=>({
         name: it.name, brand: it.brand || null, price: Number(it.price),
         quantity: (it.quantity && Number(it.quantity) > 0) ? Math.round(Number(it.quantity)) : 1
       })) : [];
-      scanParsedMeta = { store: parsed.store || null, location: parsed.location || null, date: parsed.date || null };
+      scanParsedMeta = { store: parsed.store || null, location: parsed.location || null, date: parsed.date || null, total: (typeof parsed.total === 'number') ? parsed.total : null };
 
       if(scanParsedItems.length === 0){
         throw new Error('No items found');
@@ -3143,13 +3197,14 @@
       $('#scan-date').value = (scanParsedMeta.date && /^\d{4}-\d{2}-\d{2}$/.test(scanParsedMeta.date)) ? scanParsedMeta.date : todayStr;
 
       await renderScanRows();
+      showTotalWarningIfNeeded();
       statusEl.style.display = 'none';
       $('#scanResults').style.display = 'block';
     }catch(err){
       statusEl.style.display = 'none';
       errorEl.textContent = (err && err.message === 'UNSUPPORTED_RETAILER')
         ? "This receipt doesn't look like it's from a retailer Skarrel supports (Woolworths, Checkers, Pick n Pay, Shoprite, SPAR, or Food Lover's Market) — so there's nothing to add from it."
-        : "Couldn't read that receipt clearly — try a brighter, flatter photo, or add the price manually instead.";
+        : "Couldn't read that receipt clearly — try a brighter, flatter photo on a plain surface, or add the price manually instead.";
       errorEl.style.display = 'block';
     }finally{
       $('#scanGoBtn').disabled = false;
@@ -3275,6 +3330,7 @@
     $('#scanResults').style.display = 'none';
     $('#scan-locationText').value = '';
     $('#scan-newBranchPrompt').style.display = 'none';
+    $('#scanTotalWarning').style.display = 'none';
   });
 
   // ---------------- Retailer gate for specials ----------------
