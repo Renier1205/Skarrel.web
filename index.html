@@ -3425,7 +3425,7 @@
       statusEl.style.display = 'none';
       errorEl.textContent = (err && err.message === 'UNSUPPORTED_RETAILER')
         ? "This receipt doesn't look like it's from a retailer Skarrel supports (Woolworths, Checkers, Pick n Pay, Shoprite, SPAR, or Food Lover's Market) — so there's nothing to add from it."
-        : "Couldn't read that video clearly — try panning slower and steadier over about 10-20 seconds, make sure the receipt stays in frame and well-lit, or use a single photo instead for a shorter slip.";
+        : "Couldn't read that video clearly — try panning slower and steadier over about 10-20 seconds, make sure the receipt stays in frame and well-lit, or use a single photo instead for a shorter slip. [DEBUG: " + (err && err.message ? err.message : 'unknown') + "]";
       errorEl.style.display = 'block';
     }finally{
       $('#scanVideoGoBtn').disabled = false;
@@ -3451,7 +3451,7 @@
         try{ return JSON.parse(clean.slice(start, end+1)); }catch(e2){}
       }
       console.error('Skarrel receipt scan: could not parse a JSON object out of the model response. Raw response:', rawText);
-      throw new Error('BAD_JSON');
+      
     }
   }
 
@@ -3544,7 +3544,7 @@
       statusEl.style.display = 'none';
       errorEl.textContent = (err && err.message === 'UNSUPPORTED_RETAILER')
         ? "This receipt doesn't look like it's from a retailer Skarrel supports (Woolworths, Checkers, Pick n Pay, Shoprite, SPAR, or Food Lover's Market) — so there's nothing to add from it."
-        : "Couldn't read that receipt clearly — try a brighter, flatter photo on a plain surface, or add the price manually instead.";
+        : "Couldn't read that receipt clearly — try a brighter, flatter photo on a plain surface, or add the price manually instead. [DEBUG: " + (err && err.message ? err.message : 'unknown') + "]";
       errorEl.style.display = 'block';
     }finally{
       $('#scanGoBtn').disabled = false;
