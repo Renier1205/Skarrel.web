@@ -3450,7 +3450,7 @@
       if(start !== -1 && end !== -1 && end > start){
         try{ return JSON.parse(clean.slice(start, end+1)); }catch(e2){}
       }
-      console.error('Skarrel receipt scan: could not parse a JSON object out of the model response. Raw response:', rawText);
+      console.error('Skarrel receipt scan: could not parse a JSON object out of the model response. Raw response:', rawText);     throw new Error('BAD_JSON: ' + rawText.slice(0,300));
       
     }
   }
