@@ -3440,7 +3440,7 @@
   // ---- Robust JSON extraction: Claude is told to return ONLY raw JSON, but if a stray
   // preamble/sentence slips in anyway (more likely on a hard-to-read image), find the JSON
   // object inside the text rather than failing the whole scan on a strict parse. ----
-  function parseReceiptJson(rawText){
+  function parseReceiptJson(rawText){     if(!rawText){ throw new Error('EMPTY_TEXT_FROM_MODEL'); }
     const clean = rawText.replace(/```json|```/g,'').trim();
     try{
       return JSON.parse(clean);
