@@ -3387,7 +3387,7 @@
       }
       const data = await response.json();
       const text = (data.content || []).map(b=>b.text||'').join('');
-      const parsed = parseReceiptJson(text);
+      if(!text){ throw new Error('EMPTY_RESPONSE. Full API reply: ' + JSON.stringify(data).slice(0,500)); }     const parsed = parseReceiptJson(text);
 
       scanParsedItems = Array.isArray(parsed.items) ? parsed.items.filter(it=>it && it.name && typeof it.price !== 'undefined').map(it=>({
         name: it.name, brand: it.brand || null, price: Number(it.price),
@@ -3504,7 +3504,7 @@
       }
       const data = await response.json();
       const text = (data.content || []).map(b=>b.text||'').join('');
-      const parsed = parseReceiptJson(text);
+      if(!text){ throw new Error('EMPTY_RESPONSE. Full API reply: ' + JSON.stringify(data).slice(0,500)); }     const parsed = parseReceiptJson(text);
 
       scanParsedItems = Array.isArray(parsed.items) ? parsed.items.filter(it=>it && it.name && typeof it.price !== 'undefined').map(it=>({
         name: it.name, brand: it.brand || null, price: Number(it.price),
