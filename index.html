@@ -2951,7 +2951,7 @@
   // tool becomes a fallback for the cases this heuristic gets wrong (e.g. a very bright table,
   // or the receipt already filling the whole frame). ----
   function detectReceiptBounds(img){
-    const maxDim = 320;
+    const maxDim = 420;
     const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
     const w = Math.max(1, Math.round(img.naturalWidth * scale));
     const h = Math.max(1, Math.round(img.naturalHeight * scale));
@@ -2960,14 +2960,37 @@
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0, w, h);
     let data;
-    try{ data = ctx.getImageData(0, 0, w, h).data; }catch(e){ return null; } // canvas may be tainted on some hosts
+    try{ data = ctx.getImageData(0, 0, w, h).data; }catch(e){ return null; }
 
     const lum = new Float32Array(w * h);
     for(let i = 0; i < w * h; i++){
       lum[i] = 0.299*data[i*4] + 0.587*data[i*4+1] + 0.114*data[i*4+2];
     }
 
-    // Sample a thin border frame as the background brightness estimate
+    // ---- Otsu's method: finds the brightness cutoff that best splits THIS photo into two
+    // groups (paper vs background) by maximising the contrast between them, instead of using
+    // one fixed rule for every photo regardless of its lighting. ----
+    const histogram = new Array(256).fill(0);
+    for(let i = 0; i < lum.length; i++){ histogram[Math.min(255, Math.round(lum[i]))]++; }
+    const total = lum.length;
+    let sumAll = 0;
+    for(let t = 0; t < 256; t++){ sumAll += t * histogram[t]; }
+    let sumB = 0, wB = 0, maxVar = 0, otsuThreshold = 128;
+    for(let t = 0; t < 256; t++){
+      wB += histogram[t];
+      if(wB === 0) continue;
+      const wF = total - wB;
+      if(wF === 0) break;
+      sumB += t * histogram[t];
+      const mB = sumB / wB;
+      const mF = (sumAll - sumB) / wF;
+      const varBetween = wB * wF * (mB - mF) * (mB - mF);
+      if(varBetween > maxVar){ maxVar = varBetween; otsuThreshold = t; }
+    }
+
+    // Sanity-check against the border brightness (receipts are almost always brighter than
+    // whatever they're sitting on) — if Otsu's cutoff would call most of the border "paper" too,
+    // fall back to the older border-relative rule instead of trusting a bad split.
     const bw = Math.max(2, Math.round(w * 0.04));
     const bh = Math.max(2, Math.round(h * 0.04));
     const borderVals = [];
@@ -2981,41 +3004,65 @@
     }
     borderVals.sort((a,b)=>a-b);
     const bgMedian = borderVals[Math.floor(borderVals.length/2)];
-
+    const borderAboveOtsu = borderVals.filter(v=>v>otsuThreshold).length / borderVals.length;
     let maxL = 0;
     for(let i = 0; i < lum.length; i++){ if(lum[i] > maxL) maxL = lum[i]; }
-    const threshold = bgMedian + Math.max(16, (maxL - bgMedian) * 0.26);
+    const fallbackThreshold = bgMedian + Math.max(16, (maxL - bgMedian) * 0.26);
+    const threshold = borderAboveOtsu > 0.35 ? fallbackThreshold : Math.max(otsuThreshold, bgMedian + 10);
 
-    const colCount = new Float32Array(w);
-    const rowCount = new Float32Array(h);
-    for(let y = 0; y < h; y++){
-      for(let x = 0; x < w; x++){
-        if(lum[y*w+x] > threshold){ colCount[x]++; rowCount[y]++; }
+    // ---- Flood fill from the centre of the photo outward, instead of scanning whole rows and
+    // columns — this traces the receipt's actual connected shape, so a bright reflection or a
+    // light patch elsewhere in the photo (not physically touching the receipt) can't get mistaken
+    // for part of it the way a row/column brightness count could. ----
+    const visited = new Uint8Array(w * h);
+    const stack = [];
+    const startX = Math.floor(w/2), startY = Math.floor(h/2);
+    function isBright(x,y){ return lum[y*w+x] > threshold; }
+    let seedX = -1, seedY = -1;
+    if(isBright(startX, startY)){ seedX = startX; seedY = startY; }
+    else {
+      outer:
+      for(let r = 1; r < Math.max(w,h)/2; r += 4){
+        for(let dx = -r; dx <= r; dx += 4){
+          const x1 = startX+dx, y1 = startY-r, y2 = startY+r;
+          if(x1>=0 && x1<w){
+            if(y1>=0 && isBright(x1,y1)){ seedX=x1; seedY=y1; break outer; }
+            if(y2<h && isBright(x1,y2)){ seedX=x1; seedY=y2; break outer; }
+          }
+        }
+      }
+    }
+    if(seedX === -1) return null; // no plausible receipt region found at all
+
+    stack.push(seedY*w+seedX);
+    visited[seedY*w+seedX] = 1;
+    let minX=seedX, maxX=seedX, minY=seedY, maxY=seedY, pixelCount=0;
+    while(stack.length){
+      const idx = stack.pop();
+      const x = idx % w, y = Math.floor(idx / w);
+      pixelCount++;
+      if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+      const neighbors = [idx-1, idx+1, idx-w, idx+w];
+      for(const nIdx of neighbors){
+        if(nIdx<0 || nIdx>=w*h) continue;
+        const nx = nIdx % w;
+        if(Math.abs(nx-x)>1) continue;
+        if(visited[nIdx]) continue;
+        if(!isBright(nx, Math.floor(nIdx/w))) continue;
+        visited[nIdx]=1;
+        stack.push(nIdx);
       }
     }
 
-    function findRange(counts, total, minFrac){
-      const need = total * minFrac;
-      let start = -1, end = -1;
-      for(let i = 0; i < counts.length; i++){
-        if(counts[i] >= need){ if(start === -1) start = i; end = i; }
-      }
-      return { start, end };
-    }
+    const bw2raw = maxX - minX + 1;
+    const bh2raw = maxY - minY + 1;
+    const coverage = (bw2raw * bh2raw) / (w * h);
+    const density = pixelCount / (bw2raw * bh2raw);
+    // Bail out on implausible detections: too big (basically the whole frame), too small (noise),
+    // or too sparse (the fill leaked into scattered bright specks rather than one solid slip).
+    if(coverage > 0.95 || coverage < 0.03 || density < 0.35) return null;
 
-    const rowRange = findRange(rowCount, w, 0.16);
-    const colRange = findRange(colCount, h, 0.16);
-    if(rowRange.start === -1 || colRange.start === -1) return null;
-
-    let bx = colRange.start, by = rowRange.start;
-    let bw2 = colRange.end - colRange.start + 1;
-    let bh2 = rowRange.end - rowRange.start + 1;
-
-    // Bail out if the "detected" region is basically the whole frame (no real edges to find,
-    // e.g. the receipt already fills the shot) or implausibly small (noise, not a receipt)
-    const coverage = (bw2 * bh2) / (w * h);
-    if(coverage > 0.95 || coverage < 0.03) return null;
-
+    let bx = minX, by = minY, bw2 = bw2raw, bh2 = bh2raw;
     const padX = bw2 * 0.03, padY = bh2 * 0.02;
     bx = Math.max(0, bx - padX);
     by = Math.max(0, by - padY);
@@ -3023,9 +3070,7 @@
     bh2 = Math.min(h - by, bh2 + padY*2);
 
     return { xFrac: bx/w, yFrac: by/h, wFrac: bw2/w, hFrac: bh2/h };
-  }
-
-  function loadImageFromFile(file){
+  }function loadImageFromFile(file){
     return new Promise((resolve, reject)=>{
       const img = new Image();
       img.onload = ()=> resolve(img);
