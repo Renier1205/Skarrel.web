@@ -691,7 +691,7 @@
       <p class="rp-note">Posting a special is free today. Featured placement, a full retailer dashboard, and deeper analytics are on the roadmap — see the business model notes for details.</p>
     </div>
 
-    <div class="special-form" id="ps-gate">
+    <div class="special-form" id="ps-denied" style="display:none;">
       <div class="gate-row">
         <div class="gate-icon">
           <svg width="14" height="14" viewBox="0 0 46 46" fill="none">
@@ -702,15 +702,8 @@
         </div>
         <span class="gate-badge" style="margin-bottom:0;">Retailer sign-in</span>
       </div>
-      <h3>Enter your retailer access code</h3>
-      <p class="hint">Posting is limited to verified store partners. Not signed up yet? Get in touch with the Skarrel team to become a verified retailer.</p>
-      <div class="submit-form" style="border-top:none; padding-top:14px;">
-        <div class="frow">
-          <div class="field"><label>Retailer access code</label><input id="ps-code" type="password" placeholder="Enter code"></div>
-        </div>
-        <button id="ps-unlockBtn">Unlock retailer tools</button>
-        <div class="code-error" id="ps-codeError">That code isn't valid. Contact Skarrel to get set up as a verified retailer.</div>
-      </div>
+      <h3>This tool is for verified retailers only</h3>
+      <p class="hint">Posting is limited to accounts Skarrel has verified as an actual retailer, tied to your signed-in account — not a code anyone could type in. Not signed up as a retailer yet? Get in touch with the Skarrel team to become a verified partner.</p>
     </div>
 
     <div class="special-form" id="ps-formWrap" style="display:none;">
@@ -734,7 +727,7 @@
         <button id="ps-submitBtn">Pin special</button>
         <div class="toast" id="ps-toast">Special posted to the board!</div>
       </div>
-      <div class="verified-note">✓ You're signed in as a verified retailer on this device.</div>
+      <div class="verified-note">✓ You're signed in as a verified retailer.</div>
     </div>
   </section>
 
@@ -776,7 +769,7 @@
     <h2 class="h">Admin</h2>
     <p class="sub">A real-data overview and basic moderation — not a full user-management system. See the note at the bottom for what this can't show you, and why.</p>
 
-    <div class="special-form" id="admin-gate">
+    <div class="special-form" id="admin-denied" style="display:none;">
       <div class="gate-row">
         <div class="gate-icon">
           <svg width="14" height="14" viewBox="0 0 46 46" fill="none">
@@ -785,17 +778,10 @@
             <path d="M30 32 C 33 25.5, 30 18, 33 11.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
           </svg>
         </div>
-        <span class="gate-badge">Owner sign-in</span>
+        <span class="gate-badge">Owner only</span>
       </div>
-      <h3>Enter the admin access code</h3>
-      <p class="hint">Same kind of lightweight gate as the retailer sign-in — not real account security, just a deterrent against casual access.</p>
-      <div class="submit-form" style="border-top:none; padding-top:14px;">
-        <div class="frow">
-          <div class="field"><label>Admin access code</label><input id="admin-code" type="password" placeholder="Enter code"></div>
-        </div>
-        <button id="adminUnlockBtn">Unlock admin dashboard</button>
-        <div class="code-error" id="admin-codeError">That code isn't valid.</div>
-      </div>
+      <h3>This area is restricted</h3>
+      <p class="hint">Admin access is tied to a specific signed-in account, checked against the database — not a code or a device setting. If you believe you should have access, contact the Skarrel team.</p>
     </div>
 
     <div id="admin-dashboard" style="display:none;">
@@ -808,6 +794,15 @@
       <p class="sub" style="margin-top:2px;">Pulls real packaging photos from Open Food Facts (a free, open grocery product database) for any product that doesn't have one yet. Skips Fruit & Veg on purpose — those items don't come in branded packaging, so they keep their icon instead of a mismatched photo. Safe to re-run any time.</p>
       <button id="fetchPhotosBtn" style="margin-top:12px; background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 20px; font-weight:700; font-size:13.5px;">Fetch product photos</button>
       <p class="sub" id="fetchPhotosStatus" style="display:none; margin-top:10px;"></p>
+
+      <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Retailer verification</h3>
+      <p class="sub" style="margin-top:2px;">Grant or remove "verified retailer" status. Only accounts you mark here can post specials — check their email matches the retailer/business before adding them.</p>
+      <div class="frow" style="margin-top:10px; align-items:flex-end;">
+        <div class="field"><label style="font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; text-transform:uppercase; opacity:.6; display:block; margin-bottom:4px;">Account email</label><input id="admin-retailer-email" type="email" placeholder="retailer@example.com" style="border:1.5px solid var(--line); border-radius:10px; padding:9px 10px; font-family:'Quicksand',sans-serif; font-weight:600; font-size:16px; background:var(--paper); color:var(--ink); width:100%;"></div>
+        <button id="admin-grantRetailerBtn" type="button" style="background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:11px 18px; font-weight:700; font-size:13px;">Grant retailer access</button>
+      </div>
+      <p class="sub" id="admin-retailerStatus" style="display:none; margin-top:8px;"></p>
+      <div id="admin-retailer-list" style="margin-top:14px;"></div>
 
       <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Prices</h3>
       <p class="sub" style="margin-top:2px;">Remove anything that's wrong, spammy, or duplicated.</p>
@@ -949,10 +944,6 @@
     "Newcastle":{lat:-27.7430,lng:29.9345},
     "Kathu":{lat:-27.6989,lng:23.0453}
   };
-
-  // A lightweight client-side gate — not real authentication. See chat notes.
-  const RETAILER_CODE = "PARTNER2026";
-  const ADMIN_CODE = "OWNER2026";
 
   let BRANCHES = {};
   let userAddedBranchCount = 0;
@@ -1101,7 +1092,6 @@
     "Frozen","Beverages","Snacks & Confectionery","Household & Cleaning",
     "Personal Care","Baby","Pet","Condiments & Sauces","Health & Wellness"
   ];
-
   const DEFAULT_PRODUCTS = [
     {id:"p1", name:"Full Cream Milk 2L", unit:"2L", category:"Dairy & Eggs"},
     {id:"p2", name:"Low Fat Milk 2L", unit:"2L", category:"Dairy & Eggs"},
@@ -1346,6 +1336,8 @@
   let savingsHistory = [];
   let userId = null;
   let userProfile = null;
+  let isAdminUser = false;
+  let isRetailerUser = false;
   let appReviews = [];
   let selectedStars = 0;
   let userBranches = {};
@@ -1418,7 +1410,6 @@
       navigator.geolocation.getCurrentPosition(
         (pos)=>{
           const { town, distanceKm } = nearestCoveredTown(pos.coords.latitude, pos.coords.longitude);
-          // Only auto-pick a town if the match is reasonably close, otherwise leave it as "All areas"
           resolve(distanceKm <= 150 ? town : "All areas");
         },
         ()=>{ resolve(null); },
@@ -1436,7 +1427,6 @@
     const parts = key.split("::");
     return { productId: parts[0], store: parts[1], brand: parts.slice(2).join("::") || "Unspecified brand" };
   }
-
   async function loadBranchesFromSupabase(){
     try{
       if(!supabaseClient) throw new Error('no-client');
@@ -1552,8 +1542,8 @@
     updateShareCard();
     renderProfileChip();
     renderReviews();
-    await checkRetailerVerified();
-    await checkAdminVerified();
+    applyAdminVisibility();
+    applyRetailerVisibility();
   }
 
   // ---- Real product photos via Open Food Facts (free, no key needed, CC-BY-SA — see footer credit) ----
@@ -1572,9 +1562,6 @@
   }
 
   let photoFetchInProgress = false;
-  // Categories where items are generic/unbranded (no specific product to photograph) —
-  // Open Food Facts photos are of specific packaged products, so pinning one to "Broccoli"
-  // would misrepresent it. These stay on their emoji icon instead.
   const UNBRANDED_CATEGORIES = ["Fruit & Veg"];
 
   async function fetchProductPhotosAll(){
@@ -1582,7 +1569,6 @@
     const btn = $('#fetchPhotosBtn');
     const statusEl = $('#fetchPhotosStatus');
 
-    // Clear out any photo an unbranded item may have picked up from an earlier run.
     let cleared = 0;
     products.forEach(p=>{
       if(UNBRANDED_CATEGORIES.includes(p.category) && p.image_url){ p.image_url = null; cleared++; }
@@ -1604,8 +1590,8 @@
       const url = await searchOpenFoodFacts(p.name);
       if(url){ p.image_url = url; found++; }
       done++;
-      renderProductGrid(); // show photos as they arrive rather than only at the end
-      await new Promise(r=>setTimeout(r, 250)); // gentle pacing on the free API
+      renderProductGrid();
+      await new Promise(r=>setTimeout(r, 250));
     }
     statusEl.textContent = `Saving ${found} new photo${found!==1?'s':''}…`;
     const saved = await saveProducts();
@@ -1838,7 +1824,6 @@
     }).join('');
   }
 
-  // one-time delegated listener: survives re-renders since #productGrid itself never gets replaced
   $('#productGrid').addEventListener('click', (e)=>{
     const photo = e.target.closest('.product-photo');
     if(photo){
@@ -1856,7 +1841,6 @@
     if(card) openModal(card.dataset.id);
   });
 
-  // ---- Fullscreen photo lightbox — reused for the grid, the product pop-up, and the trolley ----
   function openPhotoLightbox(src, alt){
     if(!src) return;
     $('#photoLightboxImg').src = src;
@@ -1978,7 +1962,7 @@
       trustBtn.disabled = true;
       if(trustBtn.dataset.action === 'confirm'){
         rec.confirmCount = (rec.confirmCount || 0) + 1;
-        rec.updatedAt = Date.now(); // a confirmation counts as fresh verification
+        rec.updatedAt = Date.now();
       } else {
         rec.reportCount = (rec.reportCount || 0) + 1;
       }
@@ -2050,7 +2034,6 @@
       `;
     }).join('');
   }
-
   // ---------------- Trolley ----------------
 
   function addBestToTrolley(productId){
@@ -2248,8 +2231,6 @@
     }).join('');
   }
 
-  // ---------------- Monthly savings helpers ----------------
-
   function currentMonthKey(){
     const now = new Date();
     return now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
@@ -2271,6 +2252,35 @@
       chip.textContent = 'Hi, ' + userProfile.name;
     } else {
       chip.style.display = 'none';
+    }
+  }
+
+  // ---- Real admin access: the Admin tab only ever shows for the logged-in account whose
+  // profiles.is_admin is true in the database — checked fresh on every login, never trusted
+  // from anything stored on the device (replaces the old ?admin=1 / localStorage approach). ----
+  function applyAdminVisibility(){
+    $('#adminNavBtn').style.display = isAdminUser ? '' : 'none';
+    if(isAdminUser){
+      $('#admin-denied').style.display = 'none';
+      $('#admin-dashboard').style.display = 'block';
+      renderAdminDashboard();
+    } else {
+      $('#admin-dashboard').style.display = 'none';
+      $('#admin-denied').style.display = 'block';
+      if($('#view-admin').style.display !== 'none'){ switchToView('browse'); }
+    }
+  }
+
+  // ---- Real retailer access: "Post a special" only unlocks for an account the database says
+  // is a verified retailer (profiles.is_retailer) — replaces the old typed-code gate, which
+  // any signed-in shopper who saw the code could use. Grants/revokes happen from Admin. ----
+  function applyRetailerVisibility(){
+    if(isRetailerUser){
+      $('#ps-denied').style.display = 'none';
+      $('#ps-formWrap').style.display = 'block';
+    } else {
+      $('#ps-formWrap').style.display = 'none';
+      $('#ps-denied').style.display = 'block';
     }
   }
 
@@ -2333,12 +2343,20 @@
 
   async function onAuthedUser(user){
     let name = user.email;
+    let adminFlag = false;
+    let retailerFlag = false;
     try{
-      const { data: profile } = await supabaseClient.from('profiles').select('name').eq('id', user.id).single();
+      const { data: profile } = await supabaseClient.from('profiles').select('name, is_admin, is_retailer').eq('id', user.id).single();
       if(profile && profile.name) name = profile.name;
+      if(profile && profile.is_admin) adminFlag = true;
+      if(profile && profile.is_retailer) retailerFlag = true;
     }catch(e){}
     userProfile = { name, email: user.email, id: user.id };
     userId = user.id;
+    isAdminUser = adminFlag;
+    isRetailerUser = retailerFlag;
+    applyAdminVisibility();
+    applyRetailerVisibility();
     renderProfileChip();
     $('#signupOverlay').style.display = 'none';
     await loadPersonalData();
@@ -2401,10 +2419,6 @@
       if(data.user){
         try{ await supabaseClient.from('profiles').insert({ id: data.user.id, name }); }catch(e){}
       }
-      // A session only exists here if email confirmation is switched off in Supabase.
-      // With confirmation switched on (the normal case), data.session is null even though
-      // data.user is returned — so we must check the SESSION, not the user, to decide
-      // whether this person is actually allowed into the app yet.
       if(data.session){
         await onAuthedUser(data.user);
       } else {
@@ -2434,11 +2448,14 @@
   $('#authSignOutBtn').addEventListener('click', async ()=>{
     if(supabaseClient){ try{ await supabaseClient.auth.signOut(); }catch(e){} }
     userProfile = null;
+    isAdminUser = false;
+    isRetailerUser = false;
+    applyAdminVisibility();
+    applyRetailerVisibility();
     renderProfileChip();
     showAuthOverlay('login');
   });
 
-  // ---- Show/hide password toggles — plain type-attribute swap, works the same on iOS and Android ----
   $$('.pw-toggle').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const input = document.getElementById(btn.dataset.target);
@@ -2457,9 +2474,9 @@
       if(typeof window.supabase !== 'undefined'){
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           auth: {
-            persistSession: true,      // keep the session saved in this browser
-            autoRefreshToken: true,    // silently renew it so it doesn't expire while the app is open
-            detectSessionInUrl: true,  // pick up the session when returning from an email confirmation link
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
             storage: window.localStorage,
             storageKey: 'skarrel-auth'
           }
@@ -2467,8 +2484,6 @@
       }
     }catch(e){}
 
-    // Listens for the moment Supabase confirms who's signed in — whether that's an
-    // already-saved session being restored on this visit, or a fresh sign-in.
     if(supabaseClient){
       supabaseClient.auth.onAuthStateChange((event, session)=>{
         if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session && session.user){
@@ -2476,6 +2491,10 @@
           onAuthedUser(session.user);
         } else if(event === 'SIGNED_OUT'){
           userProfile = null;
+          isAdminUser = false;
+          isRetailerUser = false;
+          applyAdminVisibility();
+          applyRetailerVisibility();
           renderProfileChip();
         }
       });
@@ -2497,7 +2516,6 @@
       showAuthOverlay('login');
     }
   }
-
   // ---------------- Reviews ----------------
 
   function setSelectedStars(n){
@@ -2659,13 +2677,14 @@
 
   // --- view switching ---
   function switchToView(view){
+    if(view === 'admin' && !isAdminUser){ view = 'browse'; }
     $$('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.view === view));
     ['browse','trolley','report','specials','submit','scan','post-special','reviews','admin'].forEach(v=>{
       $('#view-'+v).style.display = (v===view) ? 'block' : 'none';
     });
     if(view === 'report'){ updateShareCard(); }
     if(view === 'reviews'){ renderReviews(); }
-    if(view === 'admin' && $('#admin-dashboard').style.display === 'block'){ renderAdminDashboard(); }
+    if(view === 'admin' && isAdminUser){ renderAdminDashboard(); }
   }
 
   $$('nav.tabs button').forEach(btn=>{
@@ -2784,7 +2803,6 @@
     setTimeout(()=>toast.classList.remove('show'), 3000);
     $('#branch-town').value = ''; $('#branch-address').value = '';
   });
-
   // ---------------- Receipt scanning ----------------
 
   function fileToBase64(file){
@@ -2805,7 +2823,6 @@
     return match || null;
   }
 
-  // ---- Automatic category classification, remembered so we never ask the same question twice ----
   async function saveCategoryMemory(){
     try{
       if(!supabaseClient) return;
@@ -2843,7 +2860,7 @@
     if(!category){ category = CATEGORIES[CATEGORIES.length - 1] === "Health & Wellness" ? "Pantry & Groceries" : CATEGORIES[0]; }
 
     categoryMemory[key] = category;
-    saveCategoryMemory(); // fire-and-forget, no need to block on this
+    saveCategoryMemory();
     return category;
   }
 
@@ -2871,10 +2888,9 @@
     return null;
   }
 
-  // ---- receipt-scan correction memory: learns from edits shoppers make before confirming ----
   async function saveScanCorrection(entry){
     scanCorrections.push(entry);
-    if(scanCorrections.length > 50){ scanCorrections = scanCorrections.slice(-50); } // keep it recent and small
+    if(scanCorrections.length > 50){ scanCorrections = scanCorrections.slice(-50); }
     try{
       if(!supabaseClient) return;
       await supabaseClient.from('scan_corrections').insert({
@@ -2893,16 +2909,13 @@
     return " Shoppers have corrected these exact misreads on past receipts — watch for the same kind of mistake (e.g. reading a line total instead of the per-item price when a quantity is shown): " + lines + ".";
   }
 
-  // ---- Background bleed-through / ghosting hint: told explicitly since some receipts are
-  // photographed on surfaces (glossy tile, another sheet of paper underneath) that let faint
-  // shadow-text show through the thin thermal paper, which can be mistaken for real print. ----
   const GHOSTING_HINT = " Some receipt photos show a second, much fainter layer of text bleeding through from behind the paper or from a surface underneath (a ghost/shadow of other writing, at much lower contrast than the real print) — this is NOT part of the receipt. Read only the sharpest, darkest, highest-contrast layer of text as the actual receipt content, and ignore any lighter, blurrier, or duplicated-looking text sitting behind or between the real lines.";
 
-  // ---- Image quality enhancement: resizes down (so uploads stay well under server limits) and
-  // sharpens contrast on faded thermal-paper text. Grayscale first, then a stronger contrast
-  // curve — this pushes faint background bleed-through (usually much lighter than real ink)
-  // further toward white while keeping genuine black print dark, instead of amplifying everything
-  // equally the way a plain brightness/contrast filter would. ----
+  // ---- IMPORTANT: only food/grocery/household items belong in Skarrel — clothing, homeware,
+  // electronics, or any other non-grocery line on a receipt (even from a supported retailer
+  // like Woolworths that also sells clothing) must never be added as a product. ----
+  const FOOD_ONLY_HINT = " Skarrel ONLY tracks grocery, food, beverage, and everyday household/personal-care items — the kind of thing bought at a supermarket to eat, drink, clean with, or use around the home or on yourself. Some of these retailers (Woolworths especially) sell many other departments on the same receipt — clothing, homeware, linen, electronics, books, stationery, toys, gift cards, and similar. Only include items that are genuinely groceries/food/drink/household/personal-care in the items array. Skip any line for clothing, homeware, electronics, books, stationery, toys, gift cards, or any other non-grocery department entirely — do not guess a grocery category for them, just leave them out of the items array as if they were never on the receipt.";
+
   function enhanceImageFile(file, maxDimension, quality){
     maxDimension = maxDimension || 1600;
     quality = quality || 0.85;
@@ -2918,15 +2931,10 @@
           canvas.width = w;
           canvas.height = h;
           const ctx = canvas.getContext('2d');
-          // grayscale + a steeper contrast curve than before (was 1.18) — the extra contrast
-          // specifically targets faint bled-through text, which sits closer to the paper's own
-          // brightness than real ink does, so pushing the curve harder separates the two better.
           if('filter' in ctx){ ctx.filter = 'grayscale(1) contrast(1.45) brightness(1.08)'; }
           ctx.drawImage(img, 0, 0, w, h);
           let q = quality;
           let dataUrl = canvas.toDataURL('image/jpeg', q);
-          // Long receipts can still come out large even after resizing — step quality down further if needed
-          // so the upload comfortably clears the server's request-size limit.
           while(dataUrl.length > 3500000 && q > 0.4){
             q -= 0.1;
             dataUrl = canvas.toDataURL('image/jpeg', q);
@@ -2935,7 +2943,7 @@
           resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
         }catch(err){
           URL.revokeObjectURL(url);
-          resolve(null); // fall back to the original file if enhancement fails for any reason
+          resolve(null);
         }
       };
       img.onerror = ()=>{ URL.revokeObjectURL(url); resolve(null); };
@@ -2943,13 +2951,10 @@
     });
   }
 
-  // ---- Automatic receipt-edge detection: receipts are consistently pale/white thermal paper
-  // against a table, tile, wood, or marble background that's almost always darker or less
-  // uniform than the paper. We sample the photo's outer border as a stand-in for "background
-  // brightness", then find the largest region that's clearly brighter than that — that's the
-  // receipt. This runs automatically so shoppers don't have to crop by hand; the manual drag
-  // tool becomes a fallback for the cases this heuristic gets wrong (e.g. a very bright table,
-  // or the receipt already filling the whole frame). ----
+  // ---- Automatic receipt-edge detection: Otsu adaptive thresholding (finds the brightness
+  // cutoff that best splits THIS photo into paper vs background) plus a flood-fill from the
+  // photo centre outward, so the traced region is the receipt's actual connected shape rather
+  // than a bright patch elsewhere in the frame. ----
   function detectReceiptBounds(img){
     const maxDim = 420;
     const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
@@ -2967,9 +2972,6 @@
       lum[i] = 0.299*data[i*4] + 0.587*data[i*4+1] + 0.114*data[i*4+2];
     }
 
-    // ---- Otsu's method: finds the brightness cutoff that best splits THIS photo into two
-    // groups (paper vs background) by maximising the contrast between them, instead of using
-    // one fixed rule for every photo regardless of its lighting. ----
     const histogram = new Array(256).fill(0);
     for(let i = 0; i < lum.length; i++){ histogram[Math.min(255, Math.round(lum[i]))]++; }
     const total = lum.length;
@@ -2988,9 +2990,6 @@
       if(varBetween > maxVar){ maxVar = varBetween; otsuThreshold = t; }
     }
 
-    // Sanity-check against the border brightness (receipts are almost always brighter than
-    // whatever they're sitting on) — if Otsu's cutoff would call most of the border "paper" too,
-    // fall back to the older border-relative rule instead of trusting a bad split.
     const bw = Math.max(2, Math.round(w * 0.04));
     const bh = Math.max(2, Math.round(h * 0.04));
     const borderVals = [];
@@ -3010,10 +3009,6 @@
     const fallbackThreshold = bgMedian + Math.max(16, (maxL - bgMedian) * 0.26);
     const threshold = borderAboveOtsu > 0.35 ? fallbackThreshold : Math.max(otsuThreshold, bgMedian + 10);
 
-    // ---- Flood fill from the centre of the photo outward, instead of scanning whole rows and
-    // columns — this traces the receipt's actual connected shape, so a bright reflection or a
-    // light patch elsewhere in the photo (not physically touching the receipt) can't get mistaken
-    // for part of it the way a row/column brightness count could. ----
     const visited = new Uint8Array(w * h);
     const stack = [];
     const startX = Math.floor(w/2), startY = Math.floor(h/2);
@@ -3032,7 +3027,7 @@
         }
       }
     }
-    if(seedX === -1) return null; // no plausible receipt region found at all
+    if(seedX === -1) return null;
 
     stack.push(seedY*w+seedX);
     visited[seedY*w+seedX] = 1;
@@ -3058,8 +3053,6 @@
     const bh2raw = maxY - minY + 1;
     const coverage = (bw2raw * bh2raw) / (w * h);
     const density = pixelCount / (bw2raw * bh2raw);
-    // Bail out on implausible detections: too big (basically the whole frame), too small (noise),
-    // or too sparse (the fill leaked into scattered bright specks rather than one solid slip).
     if(coverage > 0.95 || coverage < 0.03 || density < 0.35) return null;
 
     let bx = minX, by = minY, bw2 = bw2raw, bh2 = bh2raw;
@@ -3070,7 +3063,9 @@
     bh2 = Math.min(h - by, bh2 + padY*2);
 
     return { xFrac: bx/w, yFrac: by/h, wFrac: bw2/w, hFrac: bh2/h };
-  }function loadImageFromFile(file){
+  }
+
+  function loadImageFromFile(file){
     return new Promise((resolve, reject)=>{
       const img = new Image();
       img.onload = ()=> resolve(img);
@@ -3079,8 +3074,6 @@
     });
   }
 
-  // ---- Takes a (possibly already-cropped) receipt file and runs it through the existing
-  // enhance -> preview -> ready-to-read pipeline. ----
   async function processReceiptFile(file){
     const preview = $('#scanPreview');
     preview.src = URL.createObjectURL(file);
@@ -3101,9 +3094,6 @@
     }
   }
 
-  // ---- Entry point for a freshly chosen photo: try to find and crop to the receipt
-  // automatically first, and only fall back to asking the shopper to crop by hand if that
-  // doesn't work out. The manual tool stays available afterwards via "Adjust crop" either way. ----
   let cropOriginalFile = null;
   let cropDetectedFrac = null;
 
@@ -3138,7 +3128,7 @@
         if(blob){ fileToProcess = new File([blob], 'receipt-autocrop.jpg', { type: 'image/jpeg' }); }
       }
     }catch(err){
-      bounds = null; // fall through and just use the original photo untouched
+      bounds = null;
     }
 
     statusEl.style.display = 'none';
@@ -3150,11 +3140,9 @@
       : "Couldn't find a clear edge automatically (busy background, or the slip already fills the frame) — using the full photo. Tap above to crop it by hand if the read comes back wrong.";
   }
 
-  // ---- Manual crop tool: the fallback/adjustment path. Pre-fills with whatever the automatic
-  // pass detected (if anything) so adjusting is a nudge, not starting from scratch. ----
   let cropNaturalW = 0, cropNaturalH = 0;
-  let cropBox = { x: 0, y: 0, w: 0, h: 0 }; // in stage (displayed) pixels
-  let cropDrag = null; // { mode:'move'|corner, startX, startY, startBox }
+  let cropBox = { x: 0, y: 0, w: 0, h: 0 };
+  let cropDrag = null;
 
   function cropStageEl(){ return $('#scanCropStage'); }
 
@@ -3177,7 +3165,6 @@
     boxEl.style.top = b.y + 'px';
     boxEl.style.width = b.w + 'px';
     boxEl.style.height = b.h + 'px';
-    // dim everything outside the box so the crop area is obvious at a glance
     $('#scanCropMaskTop').style.height = b.y + 'px';
     $('#scanCropMaskTop').style.top = '0px';
     $('#scanCropMaskBottom').style.top = (b.y + b.h) + 'px';
@@ -3206,8 +3193,6 @@
         if(fracBox){
           box = { x: fracBox.xFrac*stageW, y: fracBox.yFrac*stageH, w: fracBox.wFrac*stageW, h: fracBox.hFrac*stageH };
         } else {
-          // No prior detection to start from — a narrow, tall inset, since receipts are
-          // consistently this shape, means less dragging than starting from the full frame.
           const w = stageW * 0.7;
           const h = Math.min(stageH * 0.94, stageH);
           box = { x: (stageW - w) / 2, y: (stageH - h) / 2, w, h };
@@ -3249,7 +3234,6 @@
       next.x = start.x + dx;
       next.y = start.y + dy;
     } else {
-      // corner resize — each corner moves two edges, opposite edges stay put
       if(cropDrag.mode === 'tl'){ next.x = start.x + dx; next.y = start.y + dy; next.w = start.w - dx; next.h = start.h - dy; }
       if(cropDrag.mode === 'tr'){ next.y = start.y + dy; next.w = start.w + dx; next.h = start.h - dy; }
       if(cropDrag.mode === 'bl'){ next.x = start.x + dx; next.w = start.w - dx; next.h = start.h + dy; }
@@ -3331,8 +3315,6 @@
     $('#scanError').style.display = 'none';
     $('#scanResults').style.display = 'none';
   });
-
-  // Cheap local-contrast proxy for sharpness — higher means more crisp edges, i.e. less motion blur
   function frameSharpness(ctx, w, h){
     const step = 6;
     const data = ctx.getImageData(0, 0, w, h).data;
@@ -3369,8 +3351,6 @@
           const ctx = canvas.getContext('2d');
           if('filter' in ctx){ ctx.filter = 'grayscale(1) contrast(1.45) brightness(1.08)'; }
 
-          // Oversample candidate frames, score each for sharpness, keep only the crispest ones —
-          // a slow, steady pan still has occasional motion-blur moments this filters out.
           const candidateCount = Math.min(maxFrames * 2, Math.max(6, Math.ceil(duration * 2)));
           const candidates = [];
           for(let i=0; i<candidateCount; i++){
@@ -3388,7 +3368,7 @@
           URL.revokeObjectURL(url);
 
           const best = candidates.slice().sort((a,b)=>b.sharpness - a.sharpness).slice(0, maxFrames);
-          best.sort((a,b)=>a.t - b.t); // restore chronological order for the model's dedup logic
+          best.sort((a,b)=>a.t - b.t);
           resolve(best.map(f=>f.base64));
         }catch(err){ reject(err); }
       });
@@ -3412,7 +3392,7 @@
 
       statusEl.textContent = 'Reading your receipt…';
 
-      const prompt = "These are " + frames.length + " sequential frames sampled from one slow video pan down a single long South African grocery till slip/receipt, taken top to bottom. The frames overlap — the same item may appear in more than one frame — so combine everything into ONE merged list of items with no duplicates. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip, (3) the purchase date, (4) the printed TOTAL amount for the whole receipt if shown, and (5) every purchased line item. For each item, work out the PER-UNIT price actually paid, never a multiplied line total — if a quantity greater than 1 is shown (e.g. '7 x R19.99'), divide the line total by the quantity to get the unit price, and report the quantity as its own field (default 1)." + buildWoolworthsHint() + GHOSTING_HINT + buildCorrectionsHint() + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"total\": <printed total as a number, or null if not legible>, \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines as items — only actual purchased products belong in the items array; the total goes only in the separate \"total\" field.";
+      const prompt = "These are " + frames.length + " sequential frames sampled from one slow video pan down a single long South African grocery till slip/receipt, taken top to bottom. The frames overlap — the same item may appear in more than one frame — so combine everything into ONE merged list of items with no duplicates. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip, (3) the purchase date, (4) the printed TOTAL amount for the whole receipt if shown, and (5) every purchased line item. For each item, work out the PER-UNIT price actually paid, never a multiplied line total — if a quantity greater than 1 is shown (e.g. '7 x R19.99'), divide the line total by the quantity to get the unit price, and report the quantity as its own field (default 1)." + buildWoolworthsHint() + GHOSTING_HINT + FOOD_ONLY_HINT + buildCorrectionsHint() + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"total\": <printed total as a number, or null if not legible>, \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines as items — only actual purchased grocery products belong in the items array; the total goes only in the separate \"total\" field, and it should reflect the WHOLE receipt's printed total even if some line items were excluded from the items array for being non-grocery.";
 
       const imageBlocks = frames.map(f => ({ type:"image", source:{ type:"base64", media_type:"image/jpeg", data:f } }));
 
@@ -3421,7 +3401,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-5",
-          
+          max_tokens: 4096,
           messages: [{ role: "user", content: [ ...imageBlocks, { type: "text", text: prompt } ] }]
         })
       });
@@ -3432,7 +3412,8 @@
       }
       const data = await response.json();
       const text = (data.content || []).map(b=>b.text||'').join('');
-      if(!text){ throw new Error('EMPTY_RESPONSE. Full API reply: ' + JSON.stringify(data).slice(0,500)); }     const parsed = parseReceiptJson(text);
+      if(!text){ throw new Error('EMPTY_RESPONSE. Full API reply: ' + JSON.stringify(data).slice(0,500)); }
+      const parsed = parseReceiptJson(text);
 
       scanParsedItems = Array.isArray(parsed.items) ? parsed.items.filter(it=>it && it.name && typeof it.price !== 'undefined').map(it=>({
         name: it.name, brand: it.brand || null, price: Number(it.price),
@@ -3477,15 +3458,12 @@
     }
   });
 
-  // ---- Woolworths-specific formatting hint for the receipt-reading prompt ----
   function buildWoolworthsHint(){
     return " This receipt may be from Woolworths, whose till slips have a few quirks worth knowing: (a) each line starts with a single letter code before the item name (S = standard-rated, Z = zero-rated for VAT) — this letter is not part of the item name, ignore it; (b) a promotional discount shows as a SEPARATE line directly under an item, formatted like 'R64.99 less promo R14.99' — this means the item was originally R64.99 and the promo line's own price already IS the discounted amount the shopper paid, so do NOT create a separate line item for it and do NOT subtract the discount again from the price already shown; (c) many item names begin with a pack-size descriptor such as '6x200ml' or '750ml' (e.g. '6x200ml Tropical Jui') — this describes the pack itself (how many smaller units are inside that ONE pack) and is NOT a purchase-quantity multiplier, so do not divide the shown price by that number; only divide by a quantity when the receipt separately and explicitly shows more than one of that same line was bought (e.g. a distinct 'x2' or 'QTY 2' notation apart from the product's own pack description).";
   }
 
-  // ---- Robust JSON extraction: Claude is told to return ONLY raw JSON, but if a stray
-  // preamble/sentence slips in anyway (more likely on a hard-to-read image), find the JSON
-  // object inside the text rather than failing the whole scan on a strict parse. ----
-  function parseReceiptJson(rawText){     if(!rawText){ throw new Error('EMPTY_TEXT_FROM_MODEL'); }
+  function parseReceiptJson(rawText){
+    if(!rawText){ throw new Error('EMPTY_TEXT_FROM_MODEL'); }
     const clean = rawText.replace(/```json|```/g,'').trim();
     try{
       return JSON.parse(clean);
@@ -3495,8 +3473,8 @@
       if(start !== -1 && end !== -1 && end > start){
         try{ return JSON.parse(clean.slice(start, end+1)); }catch(e2){}
       }
-      console.error('Skarrel receipt scan: could not parse a JSON object out of the model response. Raw response:', rawText);     throw new Error('BAD_JSON: ' + rawText.slice(0,300));
-      
+      console.error('Skarrel receipt scan: could not parse a JSON object out of the model response. Raw response:', rawText);
+      throw new Error('BAD_JSON: ' + rawText.slice(0,300));
     }
   }
 
@@ -3506,8 +3484,12 @@
     if(printedTotal === null){ warnEl.style.display = 'none'; return; }
     const sum = scanParsedItems.reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.quantity)||1), 0);
     const diff = Math.abs(sum - printedTotal);
-    if(diff > 1){ // more than R1 off — flag it as worth a second look rather than a hard block
-      warnEl.textContent = `Heads up: these items add up to ${fmtR(sum)}, but the receipt's printed total was ${fmtR(printedTotal)}. Double-check the prices below before confirming — a line may have been misread.`;
+    if(diff > 1 && sum > printedTotal * 0.5){
+      // Only flag when the items we DID keep are still close to the printed total (roughly at
+      // least half) — if grocery items were mixed with other departments on the receipt and a
+      // meaningful chunk was correctly excluded as non-grocery, a big gap here is expected and
+      // not a misread, so this warning would be more confusing than useful in that case.
+      warnEl.textContent = `Heads up: these items add up to ${fmtR(sum)}, but the receipt's printed total was ${fmtR(printedTotal)}. Double-check the prices below before confirming — a line may have been misread. (If this receipt also had non-grocery items like clothing, that's likely the gap — those are intentionally left out.)`;
       warnEl.style.display = 'block';
     } else {
       warnEl.style.display = 'none';
@@ -3526,7 +3508,7 @@
 
     try{
       const correctionsHint = buildCorrectionsHint();
-      const prompt = "This is a photo of a South African grocery till slip or receipt. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip (mall name, suburb, address, store number — whatever appears), (3) the purchase date printed on the slip, (4) the printed TOTAL amount for the whole receipt if shown, and (5) every purchased line item. For each item, work out the price actually paid PER UNIT, trying to separate the brand from the generic product description where you can (for example 'CLOVER FCM 2L' -> name: 'Full Cream Milk 2L', brand: 'Clover'). IMPORTANT: many receipts show a quantity multiplied by a unit price on one line (e.g. '7 x R19.99' or 'QTY 3 @ 4.99' followed by a line total like R139.93 or R14.97). Always report the PER-UNIT price the shopper paid for one item, never the multiplied line total — if you see a quantity greater than 1, divide the line total by the quantity to get the unit price. Report the quantity you detected (default 1 if none shown) as its own field so it can be double-checked." + buildWoolworthsHint() + GHOSTING_HINT + correctionsHint + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"total\": <printed total as a number, or null if not legible>, \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines as items — only actual purchased products belong in the items array; the total goes only in the separate \"total\" field.";
+      const prompt = "This is a photo of a South African grocery till slip or receipt. Read: (1) the retailer/store name, (2) any branch or location text printed on the slip (mall name, suburb, address, store number — whatever appears), (3) the purchase date printed on the slip, (4) the printed TOTAL amount for the whole receipt if shown, and (5) every purchased line item. For each item, work out the price actually paid PER UNIT, trying to separate the brand from the generic product description where you can (for example 'CLOVER FCM 2L' -> name: 'Full Cream Milk 2L', brand: 'Clover'). IMPORTANT: many receipts show a quantity multiplied by a unit price on one line (e.g. '7 x R19.99' or 'QTY 3 @ 4.99' followed by a line total like R139.93 or R14.97). Always report the PER-UNIT price the shopper paid for one item, never the multiplied line total — if you see a quantity greater than 1, divide the line total by the quantity to get the unit price. Report the quantity you detected (default 1 if none shown) as its own field so it can be double-checked." + buildWoolworthsHint() + GHOSTING_HINT + FOOD_ONLY_HINT + correctionsHint + " Respond with ONLY raw JSON, no markdown fences and no other text, in exactly this shape: {\"store\": \"<store name or null>\", \"location\": \"<branch/location text or null>\", \"date\": \"<purchase date in YYYY-MM-DD format, or null if not legible>\", \"total\": <printed total as a number, or null if not legible>, \"items\": [{\"name\": \"<generic item name>\", \"brand\": \"<brand or null>\", \"price\": <per-unit price as a number>, \"quantity\": <integer quantity detected, default 1>}]}. Do not include subtotal, tax, total, change, discount, or loyalty-points lines as items — only actual purchased grocery products belong in the items array; the total goes only in the separate \"total\" field, and it should reflect the WHOLE receipt's printed total even if some line items were excluded from the items array for being non-grocery.";
       const response = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -3549,7 +3531,8 @@
       }
       const data = await response.json();
       const text = (data.content || []).map(b=>b.text||'').join('');
-      if(!text){ throw new Error('EMPTY_RESPONSE. Full API reply: ' + JSON.stringify(data).slice(0,500)); }     const parsed = parseReceiptJson(text);
+      if(!text){ throw new Error('EMPTY_RESPONSE. Full API reply: ' + JSON.stringify(data).slice(0,500)); }
+      const parsed = parseReceiptJson(text);
 
       scanParsedItems = Array.isArray(parsed.items) ? parsed.items.filter(it=>it && it.name && typeof it.price !== 'undefined').map(it=>({
         name: it.name, brand: it.brand || null, price: Number(it.price),
@@ -3663,7 +3646,6 @@
       const qtyVal = parseInt($('.sr-qty', row).value, 10) || 1;
       if(!name || !priceVal || priceVal <= 0) return;
 
-      // If the shopper edited the price or quantity we guessed, remember it — helps future scans avoid the same misread.
       if(original && (Math.abs(original.price - priceVal) > 0.01 || original.quantity !== qtyVal)){
         newCorrections.push({
           name: name, wrongPrice: original.price, wrongQty: original.quantity,
@@ -3720,55 +3702,80 @@
     $('#scanTotalWarning').style.display = 'none';
     $('#scanAdjustCropRow').style.display = 'none';
   });
-
-  // ---------------- Retailer gate for specials ----------------
-  async function checkRetailerVerified(){
-    try{
-      if(localStorage.getItem('skarrel_retailerVerified') === 'true'){
-        $('#ps-gate').style.display = 'none';
-        $('#ps-formWrap').style.display = 'block';
-      }
-    }catch(e){}
-  }
-  $('#ps-unlockBtn').addEventListener('click', async ()=>{
-    const code = $('#ps-code').value.trim();
-    if(code === RETAILER_CODE){
-      $('#ps-gate').style.display = 'none';
-      $('#ps-formWrap').style.display = 'block';
-      $('#ps-codeError').style.display = 'none';
-      try{ localStorage.setItem('skarrel_retailerVerified', 'true'); }catch(e){}
-    } else {
-      $('#ps-codeError').style.display = 'block';
-    }
-  });
-
-  // ---------------- Admin gate + dashboard ----------------
-  async function checkAdminVerified(){
-    try{
-      if(localStorage.getItem('skarrel_adminVerified') === 'true'){
-        $('#admin-gate').style.display = 'none';
-        $('#admin-dashboard').style.display = 'block';
-        renderAdminDashboard();
-      }
-    }catch(e){}
-  }
-  $('#adminUnlockBtn').addEventListener('click', async ()=>{
-    const code = $('#admin-code').value.trim();
-    if(code === ADMIN_CODE){
-      $('#admin-gate').style.display = 'none';
-      $('#admin-dashboard').style.display = 'block';
-      $('#admin-codeError').style.display = 'none';
-      try{ localStorage.setItem('skarrel_adminVerified', 'true'); }catch(e){}
-      renderAdminDashboard();
-    } else {
-      $('#admin-codeError').style.display = 'block';
-    }
-  });
+  // ---------------- Admin dashboard ----------------
+  // Access is controlled entirely by applyAdminVisibility() / applyRetailerVisibility(),
+  // both driven by the signed-in account's profiles.is_admin / is_retailer flags.
 
   $('#fetchPhotosBtn').addEventListener('click', fetchProductPhotosAll);
 
+  // ---- Retailer verification: admin grants/revokes access by looking up an account's email
+  // via a database function that only admins are allowed to call (checked server-side, not
+  // just hidden in the UI) — see grant_retailer_by_email / revoke_retailer_by_email in Supabase. ----
+  async function loadVerifiedRetailers(){
+    try{
+      if(!supabaseClient) return [];
+      const { data, error } = await supabaseClient.rpc('list_verified_retailers');
+      if(error) throw error;
+      return data || [];
+    }catch(e){ return []; }
+  }
+
+  async function renderRetailerList(){
+    const listEl = $('#admin-retailer-list');
+    listEl.innerHTML = `<div class="empty">Loading…</div>`;
+    const retailers = await loadVerifiedRetailers();
+    if(retailers.length === 0){
+      listEl.innerHTML = `<div class="empty">No verified retailers yet.</div>`;
+      return;
+    }
+    listEl.innerHTML = retailers.map(r=>`
+      <div class="review-card">
+        <div class="rc-top">
+          <div class="rc-name">${(r.name||'').replace(/</g,'&lt;')} — ${(r.email||'').replace(/</g,'&lt;')}</div>
+          <button class="tr-remove" data-revoke-email="${(r.email||'').replace(/"/g,'&quot;')}" title="Revoke">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  $('#admin-grantRetailerBtn').addEventListener('click', async ()=>{
+    const email = $('#admin-retailer-email').value.trim();
+    const statusEl = $('#admin-retailerStatus');
+    if(!email){ return; }
+    const btn = $('#admin-grantRetailerBtn');
+    btn.disabled = true;
+    statusEl.style.display = 'block';
+    statusEl.style.color = '';
+    statusEl.textContent = 'Granting access…';
+    try{
+      const { error } = await supabaseClient.rpc('grant_retailer_by_email', { target_email: email });
+      if(error) throw error;
+      statusEl.textContent = `${email} is now a verified retailer.`;
+      $('#admin-retailer-email').value = '';
+      await renderRetailerList();
+    }catch(e){
+      statusEl.style.color = 'var(--clay)';
+      statusEl.textContent = "Couldn't grant access — " + (e && e.message ? e.message : 'check the email is correct and that account has signed up already.');
+    }finally{
+      btn.disabled = false;
+    }
+  });
+
+  $('#admin-retailer-list').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('[data-revoke-email]');
+    if(!btn) return;
+    const email = btn.dataset.revokeEmail;
+    if(!confirm(`Revoke retailer access for ${email}?`)) return;
+    try{
+      const { error } = await supabaseClient.rpc('revoke_retailer_by_email', { target_email: email });
+      if(error) throw error;
+      await renderRetailerList();
+    }catch(e2){
+      alert("Couldn't revoke access: " + (e2 && e2.message ? e2.message : 'unknown error'));
+    }
+  });
+
   function renderAdminDashboard(){
-    // ---- Overview stats, computed from shared data only ----
     const priceKeys = Object.keys(prices);
     const productsWithPrices = new Set(priceKeys.map(k=>k.split('::')[0])).size;
     const activeSpecialsCount = specials.filter(sp => new Date(sp.until) >= new Date()).length;
@@ -3786,7 +3793,8 @@
       <div class="rp-item"><div class="rp-num">${productsWithPhotos}/${products.length}</div><div class="rp-text"><strong>Products with a real photo</strong>Fetched from Open Food Facts</div></div>
     `;
 
-    // ---- Prices moderation list ----
+    renderRetailerList();
+
     const priceRows = priceKeys.map(key=>{
       const {store, brand} = parsePriceKey(key);
       const productId = key.split('::')[0];
@@ -3805,7 +3813,6 @@
         </div>
       `).join('');
 
-    // ---- Specials moderation list ----
     $('#admin-specials').innerHTML = specials.length === 0
       ? `<div class="empty">No specials posted yet.</div>`
       : specials.slice().sort((a,b)=>b.createdAt-a.createdAt).map(sp=>`
@@ -3817,7 +3824,6 @@
         </div>
       `).join('');
 
-    // ---- Reviews moderation list ----
     $('#admin-reviews').innerHTML = appReviews.length === 0
       ? `<div class="empty">No reviews yet.</div>`
       : appReviews.slice().sort((a,b)=>b.date-a.date).map(r=>`
@@ -3874,7 +3880,12 @@
     if(now >= was){ alert('Special price should be lower than the original price.'); return; }
 
     specials.push({id:'s'+Date.now(), store, branch:branchAddr, brand: brand||null, product, was, now, until, createdAt:Date.now()});
-    await saveSpecials();
+    const saved = await saveSpecials();
+    if(!saved){
+      specials.pop();
+      alert("That didn't save — this usually means your account isn't currently verified as a retailer. Contact the Skarrel team if you believe this is a mistake.");
+      return;
+    }
     renderSpecials();
     renderProductGrid();
 
@@ -3884,23 +3895,9 @@
     $('#ps-product').value=''; $('#ps-brand').value=''; $('#ps-was').value=''; $('#ps-now').value=''; $('#ps-until').value='';
   });
 
-  // ---- Admin tab visibility: hidden from everyone by default, only revealed on a device that's
-  // visited the site once with ?admin=1 in the URL — after that it's remembered on that device. ----
-  function initAdminTabVisibility(){
-    try{
-      const params = new URLSearchParams(window.location.search);
-      const wantsAdmin = params.get('admin') === '1';
-      const alreadyShown = localStorage.getItem('skarrel_showAdminTab') === 'true';
-      if(wantsAdmin || alreadyShown){
-        $('#adminNavBtn').style.display = '';
-        if(wantsAdmin){ localStorage.setItem('skarrel_showAdminTab', 'true'); }
-      }
-    }catch(e){}
-  }
-  initAdminTabVisibility();
-
   initAuthAndApp();
 })();
+
 </script>
 </body>
 </html>
