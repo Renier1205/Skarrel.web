@@ -3360,19 +3360,24 @@
     // ---- Recover from a broken connection: a crease, fold, or shadow line partway down a long
     // receipt can create a thin dark band that the flood fill above can't cross, so it stops there
     // instead of reaching the true top/bottom edge (this is what caused a crop to cut a receipt off
-    // partway through). Fix: reuse the flood fill's left/right (X) bounds, which are reliable since
-    // a receipt's width barely varies top to bottom, then re-scan vertically within just that X
-    // range — extending past small gaps of a few dozen pixels (a crease) but stopping once it hits
-    // a longer run of background (the real edge of the paper). ----
+    // partway through). Fix: reuse the flood fill's left/right (X) bounds — widened a bit, since a
+    // receipt photographed with any curve or tilt drifts sideways slightly from top to bottom, so a
+    // fixed column window can otherwise "lose" the paper at the far end — then re-scan vertically
+    // within that window, extending past gaps (a crease, or blank paper before a barcode) but
+    // stopping once it hits a longer, sustained run of background (the real edge of the paper). ----
+    const rangeWRaw = Math.max(1, maxX - minX + 1);
+    const xPad = Math.round(rangeWRaw * 0.18);
+    const scanMinX = Math.max(0, minX - xPad);
+    const scanMaxX = Math.min(w - 1, maxX + xPad);
     const rowBrightFrac = new Float32Array(h);
-    const rangeW = Math.max(1, maxX - minX + 1);
+    const rangeW = Math.max(1, scanMaxX - scanMinX + 1);
     for(let y = 0; y < h; y++){
       let count = 0;
-      for(let x = minX; x <= maxX; x++){ if(lum[y*w+x] > threshold) count++; }
+      for(let x = scanMinX; x <= scanMaxX; x++){ if(lum[y*w+x] > threshold) count++; }
       rowBrightFrac[y] = count / rangeW;
     }
-    const rowCutoff = 0.35;
-    const maxGap = Math.max(4, Math.round(h * 0.035));
+    const rowCutoff = 0.3;
+    const maxGap = Math.max(10, Math.round(h * 0.12));
     let topY = minY, gap = 0;
     for(let y = minY - 1; y >= 0; y--){
       if(rowBrightFrac[y] >= rowCutoff){ topY = y; gap = 0; }
