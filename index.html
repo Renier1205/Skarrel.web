@@ -814,6 +814,7 @@
 
       <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Prices</h3>
       <p class="sub" style="margin-top:2px;">Remove anything that's wrong, spammy, or duplicated.</p>
+      <input id="admin-price-search" type="text" placeholder="Search by product, store, or submitter name/email…" style="margin-top:10px; border:1.5px solid var(--line); border-radius:10px; padding:9px 10px; font-family:'Quicksand',sans-serif; font-weight:600; font-size:16px; background:var(--paper); color:var(--ink); width:100%;">
       <div id="admin-prices"></div>
 
       <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Specials</h3>
@@ -1560,7 +1561,7 @@
         prices = {};
         data.forEach(row=>{
           const key = priceKey(row.product_id, row.store, row.brand);
-          prices[key] = { price: Number(row.price), updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : Date.now(), branch: row.branch || null, town: row.town || null, confirmCount: row.confirm_count || 0, reportCount: row.report_count || 0 };
+          prices[key] = { price: Number(row.price), updatedAt: row.updated_at ? new Date(row.updated_at).getTime() : Date.now(), branch: row.branch || null, town: row.town || null, confirmCount: row.confirm_count || 0, reportCount: row.report_count || 0, submittedByName: row.submitted_by_name || null, submittedByEmail: row.submitted_by_email || null };
         });
       }
     }catch(e){ prices = DEFAULT_PRICES; }
@@ -1703,7 +1704,7 @@
       const rows = Object.keys(prices).map(key=>{
         const { productId, store, brand } = parsePriceKey(key);
         const r = prices[key];
-        return { product_id: productId, store, brand, price: r.price, updated_at: new Date(r.updatedAt).toISOString(), branch: r.branch, town: r.town, confirm_count: r.confirmCount || 0, report_count: r.reportCount || 0 };
+        return { product_id: productId, store, brand, price: r.price, updated_at: new Date(r.updatedAt).toISOString(), branch: r.branch, town: r.town, confirm_count: r.confirmCount || 0, report_count: r.reportCount || 0, submitted_by_name: r.submittedByName || null, submitted_by_email: r.submittedByEmail || null };
       });
       if(!rows.length) return true;
       const { error } = await supabaseClient.from('prices').upsert(rows, { onConflict: 'product_id,store,brand' });
@@ -3059,7 +3060,7 @@
     const branchVal = $('#sf-branch').value;
     const [branchTown, branchAddr] = branchVal.includes('|||') ? branchVal.split('|||') : [null,null];
 
-    prices[priceKey(productId, store, brand)] = {price:priceVal, updatedAt:Date.now(), branch:branchAddr||null, town:branchTown||null, confirmCount:0, reportCount:0};
+    prices[priceKey(productId, store, brand)] = {price:priceVal, updatedAt:Date.now(), branch:branchAddr||null, town:branchTown||null, confirmCount:0, reportCount:0, submittedByName: userProfile ? userProfile.name : null, submittedByEmail: userProfile ? userProfile.email : null};
     const saved = await savePrices();
     if(!saved){
       alert("That didn't save — likely a connection hiccup. Please try submitting again before leaving this screen.");
@@ -3952,7 +3953,8 @@
       }
       prices[priceKey(productId, store, brand)] = {
         price: priceVal, updatedAt: receiptTimestamp, branch: branchAddr||null, town: branchTown||null,
-        confirmCount: 0, reportCount: 0, source: 'receipt-scan'
+        confirmCount: 0, reportCount: 0, source: 'receipt-scan',
+        submittedByName: userProfile ? userProfile.name : null, submittedByEmail: userProfile ? userProfile.email : null
       };
       addedCount++;
     });
@@ -4090,6 +4092,52 @@
       `).join('');
   }
 
+  function renderAdminPricesList(){
+    const searchInput = $('#admin-price-search');
+    const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+    let priceRows = Object.keys(prices).map(key=>{
+      const {store, brand} = parsePriceKey(key);
+      const productId = key.split('::')[0];
+      const p = products.find(x=>x.id===productId);
+      const rec = prices[key];
+      return {
+        key, store, brand, price: rec.price,
+        productName: p ? p.name : productId,
+        submittedByName: rec.submittedByName || null,
+        submittedByEmail: rec.submittedByEmail || null
+      };
+    }).sort((a,b)=> a.productName.localeCompare(b.productName));
+
+    if(query){
+      priceRows = priceRows.filter(r=>
+        r.productName.toLowerCase().includes(query) ||
+        r.store.toLowerCase().includes(query) ||
+        r.brand.toLowerCase().includes(query) ||
+        (r.submittedByName && r.submittedByName.toLowerCase().includes(query)) ||
+        (r.submittedByEmail && r.submittedByEmail.toLowerCase().includes(query))
+      );
+    }
+
+    $('#admin-prices').innerHTML = priceRows.length === 0
+      ? `<div class="empty">${query ? 'No prices match that search.' : 'No prices submitted yet.'}</div>`
+      : priceRows.map(r=>{
+        const submitter = r.submittedByName
+          ? `${r.submittedByName.replace(/</g,'&lt;')}${r.submittedByEmail ? ' ('+r.submittedByEmail.replace(/</g,'&lt;')+')' : ''}`
+          : 'Unknown (submitted before tracking was added)';
+        return `
+        <div class="review-card">
+          <div class="rc-top">
+            <div class="rc-name">${r.productName} — ${r.brand} @ ${r.store}: <strong>${fmtR(r.price)}</strong></div>
+            <button class="tr-remove" data-admin-price-key="${r.key}" title="Remove">✕</button>
+          </div>
+          <div class="rc-date" style="margin-top:4px;">Added by ${submitter}</div>
+        </div>
+      `;
+      }).join('');
+  }
+  $('#admin-price-search').addEventListener('input', renderAdminPricesList);
+
   function renderAdminDashboard(){
     const priceKeys = Object.keys(prices);
     const productsWithPrices = new Set(priceKeys.map(k=>k.split('::')[0])).size;
@@ -4110,24 +4158,7 @@
 
     renderRetailerList();
     renderFlaggedBranches();
-
-    const priceRows = priceKeys.map(key=>{
-      const {store, brand} = parsePriceKey(key);
-      const productId = key.split('::')[0];
-      const p = products.find(x=>x.id===productId);
-      return { key, store, brand, price: prices[key].price, productName: p ? p.name : productId };
-    }).sort((a,b)=> a.productName.localeCompare(b.productName));
-
-    $('#admin-prices').innerHTML = priceRows.length === 0
-      ? `<div class="empty">No prices submitted yet.</div>`
-      : priceRows.map(r=>`
-        <div class="review-card">
-          <div class="rc-top">
-            <div class="rc-name">${r.productName} — ${r.brand} @ ${r.store}: <strong>${fmtR(r.price)}</strong></div>
-            <button class="tr-remove" data-admin-price-key="${r.key}" title="Remove">✕</button>
-          </div>
-        </div>
-      `).join('');
+    renderAdminPricesList();
 
     $('#admin-specials').innerHTML = specials.length === 0
       ? `<div class="empty">No specials posted yet.</div>`
