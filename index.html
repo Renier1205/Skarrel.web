@@ -3350,11 +3350,45 @@
       }
     }
 
+    // Bail out early if the flood-filled area itself is sparse/scattered (bright specks rather
+    // than one solid slip) — checked BEFORE the vertical extension below, using the flood fill's
+    // own area, since after extending past a crease the box legitimately includes some non-bright
+    // rows (the crease itself) and would otherwise look artificially "sparse".
+    const floodArea = (maxX - minX + 1) * (maxY - minY + 1);
+    if(pixelCount / floodArea < 0.35) return null;
+
+    // ---- Recover from a broken connection: a crease, fold, or shadow line partway down a long
+    // receipt can create a thin dark band that the flood fill above can't cross, so it stops there
+    // instead of reaching the true top/bottom edge (this is what caused a crop to cut a receipt off
+    // partway through). Fix: reuse the flood fill's left/right (X) bounds, which are reliable since
+    // a receipt's width barely varies top to bottom, then re-scan vertically within just that X
+    // range — extending past small gaps of a few dozen pixels (a crease) but stopping once it hits
+    // a longer run of background (the real edge of the paper). ----
+    const rowBrightFrac = new Float32Array(h);
+    const rangeW = Math.max(1, maxX - minX + 1);
+    for(let y = 0; y < h; y++){
+      let count = 0;
+      for(let x = minX; x <= maxX; x++){ if(lum[y*w+x] > threshold) count++; }
+      rowBrightFrac[y] = count / rangeW;
+    }
+    const rowCutoff = 0.35;
+    const maxGap = Math.max(4, Math.round(h * 0.035));
+    let topY = minY, gap = 0;
+    for(let y = minY - 1; y >= 0; y--){
+      if(rowBrightFrac[y] >= rowCutoff){ topY = y; gap = 0; }
+      else{ gap++; if(gap > maxGap) break; }
+    }
+    let bottomY = maxY; gap = 0;
+    for(let y = maxY + 1; y < h; y++){
+      if(rowBrightFrac[y] >= rowCutoff){ bottomY = y; gap = 0; }
+      else{ gap++; if(gap > maxGap) break; }
+    }
+    minY = topY; maxY = bottomY;
+
     const bw2raw = maxX - minX + 1;
     const bh2raw = maxY - minY + 1;
     const coverage = (bw2raw * bh2raw) / (w * h);
-    const density = pixelCount / (bw2raw * bh2raw);
-    if(coverage > 0.95 || coverage < 0.03 || density < 0.35) return null;
+    if(coverage > 0.95 || coverage < 0.03) return null;
 
     let bx = minX, by = minY, bw2 = bw2raw, bh2 = bh2raw;
     const padX = bw2 * 0.03, padY = bh2 * 0.02;
