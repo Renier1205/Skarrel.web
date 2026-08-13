@@ -862,22 +862,29 @@
 
     <div id="authSignupView" style="display:none;">
       <h2>Welcome to Skarrel</h2>
-      <p class="sub">Sign up with your email to start comparing, saving, and tracking what you've saved.</p>
-      <label>Your name</label>
-      <input id="signup-name" type="text" placeholder="e.g. John">
+      <p class="sub">Enter your email and we'll send you a confirmation link. Once you've confirmed it, you'll choose your name and password.</p>
       <label>Email</label>
       <input id="signup-email" type="email" placeholder="you@example.com">
-      <label>Password</label>
-      <div class="pw-wrap">
-        <input id="signup-password" type="password" placeholder="At least 6 characters">
-        <button type="button" class="pw-toggle" data-target="signup-password" aria-label="Show password">👁️</button>
-      </div>
       <div class="su-error" id="authSignupError"></div>
-      <button class="su-submit" id="authSignupBtn">Create account</button>
-      <button type="button" id="authResendSignupBtn" style="display:none; background:none; border:none; color:var(--value-green); font-weight:700; font-size:12px; text-decoration:underline; cursor:pointer; padding:0; font-family:'Quicksand',sans-serif; margin-top:10px;">Resend confirmation email</button>
+      <button class="su-submit" id="authSignupBtn">Send confirmation link</button>
+      <button type="button" id="authResendSignupBtn" style="display:none; background:none; border:none; color:var(--value-green); font-weight:700; font-size:12px; text-decoration:underline; cursor:pointer; padding:0; font-family:'Quicksand',sans-serif; margin-top:10px;">Resend confirmation link</button>
       <div class="su-links">
         <button type="button" id="goToLoginBtn">Already have an account? Log in</button>
       </div>
+    </div>
+
+    <div id="authFinishSetupView" style="display:none;">
+      <h2>Almost there</h2>
+      <p class="sub">Your email is confirmed. Choose a name and password to finish setting up your account.</p>
+      <label>Your name</label>
+      <input id="setup-name" type="text" placeholder="e.g. John">
+      <label>Password</label>
+      <div class="pw-wrap">
+        <input id="setup-password" type="password" placeholder="At least 6 characters">
+        <button type="button" class="pw-toggle" data-target="setup-password" aria-label="Show password">👁️</button>
+      </div>
+      <div class="su-error" id="authFinishSetupError"></div>
+      <button class="su-submit" id="authFinishSetupBtn">Finish creating account</button>
     </div>
 
     <div id="authAccountView" style="display:none;">
@@ -2497,6 +2504,10 @@
       const storedEmail = localStorage.getItem('skarrel_faceUnlock_email');
       if(!credId) return;
       if(storedEmail === email){
+        // Once unlocked, stay unlocked for the rest of this browser tab — re-locking on every
+        // single page refresh is more friction than a website needs. Closing the tab clears this,
+        // so re-opening the app later (the actual "shared device" case this protects) still locks.
+        if(sessionStorage.getItem('skarrel_faceLock_unlockedThisSession') === 'true') return;
         $('#faceUnlockOverlay').style.display = 'flex';
       } else if(storedEmail && storedEmail !== email){
         // A different account was set up for Face ID on this device — that setup no longer
@@ -2504,6 +2515,9 @@
         clearFaceUnlock();
       }
     }catch(e){}
+  }
+  function markFaceLockUnlockedThisSession(){
+    try{ sessionStorage.setItem('skarrel_faceLock_unlockedThisSession', 'true'); }catch(e){}
   }
   function hideFaceLockOverlay(){
     $('#faceUnlockOverlay').style.display = 'none';
@@ -2528,6 +2542,7 @@
         }
       });
       hideFaceLockOverlay();
+      markFaceLockUnlockedThisSession();
     }catch(e){
       errEl.textContent = "Couldn't verify — try again, or use your password instead.";
       errEl.style.display = 'block';
@@ -2575,6 +2590,7 @@
   function showAuthOverlay(mode){
     $('#authLoginView').style.display = mode === 'login' ? 'block' : 'none';
     $('#authSignupView').style.display = mode === 'signup' ? 'block' : 'none';
+    $('#authFinishSetupView').style.display = mode === 'finish-setup' ? 'block' : 'none';
     $('#authAccountView').style.display = mode === 'account' ? 'block' : 'none';
     $('#signupCloseBtn').style.display = mode === 'account' ? 'block' : 'none';
     $('#authLoginError').style.display = 'none';
@@ -2628,27 +2644,41 @@
     let name = user.email;
     let adminFlag = false;
     let retailerFlag = false;
+    let onboardedFlag = true; // default true so a lookup hiccup never wrongly blocks an existing user
     try{
-      const { data: profile, error: profileErr } = await supabaseClient.from('profiles').select('name, is_admin, is_retailer').eq('id', user.id).single();
+      const { data: profile } = await supabaseClient.from('profiles').select('name, is_admin, is_retailer, onboarded').eq('id', user.id).single();
       if(profile && profile.name) name = profile.name;
       if(profile && profile.is_admin) adminFlag = true;
       if(profile && profile.is_retailer) retailerFlag = true;
+      if(profile) onboardedFlag = profile.onboarded !== false;
       if(!profile){
-        // No profile row exists for this account — can happen if an earlier sign-up hit an
-        // error partway through. Create one now so admin/retailer tools (which depend on this
-        // row existing) work correctly for this account going forward.
+        // No profile row exists for this account — either an earlier sign-up hit an error
+        // partway through, or (more likely now) this is a brand-new account that just confirmed
+        // its email via the link and hasn't chosen a name/password yet. Create a starter row so
+        // admin/retailer tools work either way, and treat this as "needs setup".
         try{ await supabaseClient.from('profiles').insert({ id: user.id, name: user.email }); }catch(e2){}
+        onboardedFlag = false;
       }
     }catch(e){
       try{ await supabaseClient.from('profiles').insert({ id: user.id, name: user.email }); }catch(e2){}
+      onboardedFlag = false;
     }
-    userProfile = { name, email: user.email, id: user.id };
+    userProfile = { name, email: user.email, id: user.id, onboarded: onboardedFlag };
     userId = user.id;
     isAdminUser = adminFlag;
     isRetailerUser = retailerFlag;
     applyAdminVisibility();
     applyRetailerVisibility();
     renderProfileChip();
+    if(!onboardedFlag){
+      // Email is confirmed (that's how they got a session at all) but they haven't chosen a
+      // name/password yet — show that screen instead of the app, and stop here.
+      $('#setup-name').value = '';
+      $('#setup-password').value = '';
+      $('#authFinishSetupError').style.display = 'none';
+      showAuthOverlay('finish-setup');
+      return;
+    }
     $('#signupOverlay').style.display = 'none';
     await loadPersonalData();
   }
@@ -2687,6 +2717,7 @@
       }
       await onAuthedUser(data.user);
       maybeOfferFaceUnlock();
+      markFaceLockUnlockedThisSession();
     }catch(err){
       errEl.textContent = 'Unexpected error: ' + err.message; errEl.style.display = 'block';
     }finally{
@@ -2694,37 +2725,56 @@
     }
   });
 
+  async function sendSignupLink(email, btn, errEl){
+    errEl.style.display = 'none';
+    if(!email){ errEl.textContent = 'Enter your email.'; errEl.style.display = 'block'; return; }
+    const origText = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try{
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true, emailRedirectTo: window.location.origin + window.location.pathname }
+      });
+      if(error){ errEl.textContent = 'Could not send link: ' + error.message; errEl.style.display = 'block'; return; }
+      errEl.style.color = 'var(--value-green)';
+      errEl.textContent = "Check your email — we've sent a confirmation link to " + email + ". Open it on this device to continue.";
+      errEl.style.display = 'block';
+      $('#authResendSignupBtn').style.display = 'inline-block';
+    }catch(err){
+      errEl.textContent = 'Unexpected error: ' + err.message; errEl.style.display = 'block';
+    }finally{
+      btn.disabled = false; btn.textContent = origText;
+    }
+  }
+
   $('#authSignupBtn').addEventListener('click', async ()=>{
     if(!supabaseClient){ return; }
-    const name = $('#signup-name').value.trim();
     const email = $('#signup-email').value.trim();
-    const password = $('#signup-password').value;
-    const errEl = $('#authSignupError');
+    await sendSignupLink(email, $('#authSignupBtn'), $('#authSignupError'));
+  });
+
+  $('#authFinishSetupBtn').addEventListener('click', async ()=>{
+    if(!supabaseClient || !userProfile){ return; }
+    const name = $('#setup-name').value.trim();
+    const password = $('#setup-password').value;
+    const errEl = $('#authFinishSetupError');
     errEl.style.display = 'none';
     if(!name){ errEl.textContent = 'Enter your name.'; errEl.style.display = 'block'; return; }
-    if(!email || !password || password.length < 6){ errEl.textContent = 'Enter a valid email and a password of at least 6 characters.'; errEl.style.display = 'block'; return; }
+    if(!password || password.length < 6){ errEl.textContent = 'Choose a password of at least 6 characters.'; errEl.style.display = 'block'; return; }
 
-    const btn = $('#authSignupBtn');
-    btn.disabled = true; const origText = btn.textContent; btn.textContent = 'Creating…';
+    const btn = $('#authFinishSetupBtn');
+    btn.disabled = true; const origText = btn.textContent; btn.textContent = 'Finishing…';
     try{
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if(data && data.user){
-        // Save the name regardless of whether signUp also reported an error (e.g. the
-        // confirmation email failing to send) — the account itself may still have been
-        // created, and without this the person's name is silently lost forever.
-        try{ await supabaseClient.from('profiles').upsert({ id: data.user.id, name }, { onConflict: 'id' }); }catch(e){}
-      }
-      if(error){ errEl.textContent = 'Sign-up failed: ' + error.message; errEl.style.display = 'block'; return; }
-      if(data.session){
-        await onAuthedUser(data.user);
-        maybeOfferFaceUnlock();
-      } else {
-        $('#signup-password').value = '';
-        errEl.style.color = 'var(--value-green)';
-        errEl.textContent = "Almost there — we've sent a confirmation link to " + email + ". Open it on this device to finish signing up, then come back here.";
-        errEl.style.display = 'block';
-        $('#authResendSignupBtn').style.display = 'inline-block';
-      }
+      const { error: pwError } = await supabaseClient.auth.updateUser({ password });
+      if(pwError){ errEl.textContent = "Couldn't set your password: " + pwError.message; errEl.style.display = 'block'; return; }
+      try{ await supabaseClient.from('profiles').upsert({ id: userProfile.id, name, onboarded: true }, { onConflict: 'id' }); }catch(e){}
+      userProfile.name = name;
+      userProfile.onboarded = true;
+      renderProfileChip();
+      $('#signupOverlay').style.display = 'none';
+      await loadPersonalData();
+      maybeOfferFaceUnlock();
+      markFaceLockUnlockedThisSession();
     }catch(err){
       errEl.textContent = 'Unexpected error: ' + err.message; errEl.style.display = 'block';
     }finally{
@@ -2734,7 +2784,7 @@
 
   $('#authResendSignupBtn').addEventListener('click', ()=>{
     const email = $('#signup-email').value.trim();
-    resendConfirmationEmail(email, $('#authResendSignupBtn'), $('#authSignupError'));
+    sendSignupLink(email, $('#authResendSignupBtn'), $('#authSignupError'));
   });
 
   $('#authResendLoginBtn').addEventListener('click', ()=>{
