@@ -2629,11 +2629,19 @@
     let adminFlag = false;
     let retailerFlag = false;
     try{
-      const { data: profile } = await supabaseClient.from('profiles').select('name, is_admin, is_retailer').eq('id', user.id).single();
+      const { data: profile, error: profileErr } = await supabaseClient.from('profiles').select('name, is_admin, is_retailer').eq('id', user.id).single();
       if(profile && profile.name) name = profile.name;
       if(profile && profile.is_admin) adminFlag = true;
       if(profile && profile.is_retailer) retailerFlag = true;
-    }catch(e){}
+      if(!profile){
+        // No profile row exists for this account — can happen if an earlier sign-up hit an
+        // error partway through. Create one now so admin/retailer tools (which depend on this
+        // row existing) work correctly for this account going forward.
+        try{ await supabaseClient.from('profiles').insert({ id: user.id, name: user.email }); }catch(e2){}
+      }
+    }catch(e){
+      try{ await supabaseClient.from('profiles').insert({ id: user.id, name: user.email }); }catch(e2){}
+    }
     userProfile = { name, email: user.email, id: user.id };
     userId = user.id;
     isAdminUser = adminFlag;
@@ -2700,10 +2708,13 @@
     btn.disabled = true; const origText = btn.textContent; btn.textContent = 'Creating…';
     try{
       const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if(error){ errEl.textContent = 'Sign-up failed: ' + error.message; errEl.style.display = 'block'; return; }
-      if(data.user){
-        try{ await supabaseClient.from('profiles').insert({ id: data.user.id, name }); }catch(e){}
+      if(data && data.user){
+        // Save the name regardless of whether signUp also reported an error (e.g. the
+        // confirmation email failing to send) — the account itself may still have been
+        // created, and without this the person's name is silently lost forever.
+        try{ await supabaseClient.from('profiles').upsert({ id: data.user.id, name }, { onConflict: 'id' }); }catch(e){}
       }
+      if(error){ errEl.textContent = 'Sign-up failed: ' + error.message; errEl.style.display = 'block'; return; }
       if(data.session){
         await onAuthedUser(data.user);
         maybeOfferFaceUnlock();
