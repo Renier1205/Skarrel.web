@@ -3164,13 +3164,83 @@
     });
   }
 
+  // ---- Product name matching ----
+  // Used whenever a scanned receipt (or any free-text product name) needs to be matched against
+  // the existing catalogue, so the same item doesn't end up duplicated just because it was worded
+  // or ordered differently (e.g. "2L Full Cream Milk" vs "Full Cream Milk 2L", or a receipt
+  // abbreviation that's close but not identical). It compares by the SET of words each name
+  // contains rather than requiring one string to literally contain the other, and tolerates a
+  // single-character typo per word — but it never merges two names that mention different
+  // sizes/quantities (e.g. "1L" vs "2L"), since those are genuinely different products even when
+  // every other word matches.
+  function normalizeTokens(str){
+    return str.toLowerCase().replace(/[^\w\s]/g, ' ').split(/\s+/).filter(Boolean);
+  }
+  function levenshtein(a, b){
+    if(a === b) return 0;
+    const m = a.length, n = b.length;
+    if(m === 0) return n;
+    if(n === 0) return m;
+    let prev = new Array(n+1);
+    for(let j=0;j<=n;j++) prev[j] = j;
+    for(let i=1;i<=m;i++){
+      const curr = [i];
+      for(let j=1;j<=n;j++){
+        const cost = a[i-1] === b[j-1] ? 0 : 1;
+        curr[j] = Math.min(prev[j]+1, curr[j-1]+1, prev[j-1]+cost);
+      }
+      prev = curr;
+    }
+    return prev[n];
+  }
+  function tokensNearMatch(t1, t2){
+    if(t1 === t2) return true;
+    if(t1.length < 3 || t2.length < 3) return false; // too short to fuzzy-match safely (e.g. "2l", "6x")
+    if(Math.abs(t1.length - t2.length) > 1) return false;
+    return levenshtein(t1, t2) <= 1;
+  }
+  function tokenSetSimilarity(tokensA, tokensB){
+    if(tokensA.length === 0 || tokensB.length === 0) return 0;
+    const usedB = new Array(tokensB.length).fill(false);
+    let matches = 0;
+    tokensA.forEach(ta=>{
+      for(let i=0;i<tokensB.length;i++){
+        if(usedB[i]) continue;
+        if(tokensNearMatch(ta, tokensB[i])){ usedB[i]=true; matches++; break; }
+      }
+    });
+    const unionSize = tokensA.length + tokensB.length - matches;
+    return unionSize === 0 ? 0 : matches / unionSize;
+  }
+  function unitTokens(tokens){
+    return tokens.filter(t => /\d/.test(t)); // e.g. "2l", "500g", "18", "6x330ml"
+  }
   function findProductMatch(name){
     const n = name.trim().toLowerCase();
     if(!n) return null;
     let match = products.find(p=>p.name.toLowerCase()===n);
     if(match) return match;
-    match = products.find(p=>p.name.toLowerCase().includes(n) || n.includes(p.name.toLowerCase()));
-    return match || null;
+
+    const queryTokens = normalizeTokens(name);
+    if(queryTokens.length === 0) return null;
+    const queryUnits = unitTokens(queryTokens);
+
+    let best = null, bestScore = 0;
+    products.forEach(p=>{
+      const pTokens = normalizeTokens(p.name);
+      const pUnits = unitTokens(pTokens);
+      if(queryUnits.length && pUnits.length){
+        const anyUnitMatches = queryUnits.some(qu => pUnits.some(pu => qu === pu));
+        if(!anyUnitMatches) return; // different size/quantity mentioned — never treat as the same product
+      }
+      const score = tokenSetSimilarity(queryTokens, pTokens);
+      if(score > bestScore){ bestScore = score; best = p; }
+    });
+
+    // Require solid overlap before treating two differently-worded names as the same product —
+    // this threshold is deliberately conservative so unrelated products don't get merged (e.g.
+    // "White Bread 700g" and "Brown Bread 700g" share 2 of 3 words but are different products).
+    return bestScore >= 0.6 ? best : null;
   }
 
   async function saveCategoryMemory(){
