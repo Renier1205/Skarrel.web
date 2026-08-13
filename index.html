@@ -882,7 +882,46 @@
     <div id="authAccountView" style="display:none;">
       <h2>Your account</h2>
       <p class="sub" id="authAccountSub"></p>
+      <div id="faceUnlockAccountRow" style="margin-top:14px;"></div>
       <button class="su-submit" id="authSignOutBtn" style="background:var(--clay);">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="faceUnlockOfferOverlay" style="display:none;">
+  <div class="signup-box" style="text-align:center;">
+    <div class="su-icon" style="margin:0 auto 14px;">
+      <svg width="20" height="20" viewBox="0 0 46 46" fill="none">
+        <path d="M12 32 C 15 25, 13 17, 16.5 10.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <path d="M21 34 C 24.5 25.5, 21.5 16, 25 7.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <path d="M30 32 C 33 25.5, 30 18, 33 11.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+    <h2>Use Face ID or Touch ID?</h2>
+    <p class="sub">Skip typing your password next time — unlock Skarrel on this device with Face ID, Touch ID, or your screen lock instead.</p>
+    <div class="su-error" id="faceUnlockOfferError"></div>
+    <button class="su-submit" id="faceUnlockEnableBtn" type="button">Enable Face ID / Touch ID</button>
+    <div class="su-links" style="justify-content:center; margin-top:14px;">
+      <button type="button" id="faceUnlockSkipBtn">Not now</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="faceUnlockOverlay" style="display:none;">
+  <div class="signup-box" style="text-align:center;">
+    <div class="su-icon" style="margin:0 auto 14px;">
+      <svg width="20" height="20" viewBox="0 0 46 46" fill="none">
+        <path d="M12 32 C 15 25, 13 17, 16.5 10.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <path d="M21 34 C 24.5 25.5, 21.5 16, 25 7.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <path d="M30 32 C 33 25.5, 30 18, 33 11.5" stroke="#FBF6EA" stroke-width="5" stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+    <h2>Welcome back</h2>
+    <p class="sub">This device is set up to unlock Skarrel with Face ID or Touch ID.</p>
+    <div class="su-error" id="faceUnlockError"></div>
+    <button class="su-submit" id="faceUnlockBtn" type="button">🔒 Unlock with Face ID / Touch ID</button>
+    <div class="su-links" style="justify-content:center; margin-top:14px;">
+      <button type="button" id="faceUnlockUsePasswordBtn">Use password instead</button>
     </div>
   </div>
 </div>
@@ -2354,6 +2393,183 @@
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhd2ZkZWlwaG14eWp2eW9lZXl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MzY0OTUsImV4cCI6MjEwMTQxMjQ5NX0.mAnvidHIW0saISLG3-utWkXOMefmENHGkCbAD8O455s";
   let supabaseClient = null;
 
+  // ---- Face ID / Touch ID quick unlock ----
+  // This is a LOCAL DEVICE CONVENIENCE LAYER on top of the real login, not a replacement for it.
+  // The actual account security is still Supabase's persisted session (already set up). What this
+  // adds: once a shopper has logged in with their password once and opted in, this device can
+  // require a successful Face ID/Touch ID/screen-lock check (via the browser's built-in WebAuthn
+  // platform authenticator) before revealing the app on future visits — useful on a shared phone.
+  // "Use password instead" signs out and forces a real password re-entry, so this behaves like a
+  // genuine lock screen, not just a skippable prompt.
+  function bytesToBase64(bytes){
+    let binary = '';
+    bytes.forEach(b=> binary += String.fromCharCode(b));
+    return btoa(binary);
+  }
+  function base64ToBytes(b64){
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++){ bytes[i] = binary.charCodeAt(i); }
+    return bytes;
+  }
+  function faceUnlockSupported(){
+    return !!(window.PublicKeyCredential && navigator.credentials);
+  }
+  function faceUnlockEnabledFor(email){
+    try{
+      return localStorage.getItem('skarrel_faceUnlock_credId') && localStorage.getItem('skarrel_faceUnlock_email') === email;
+    }catch(e){ return false; }
+  }
+  function clearFaceUnlock(){
+    try{
+      localStorage.removeItem('skarrel_faceUnlock_credId');
+      localStorage.removeItem('skarrel_faceUnlock_email');
+    }catch(e){}
+  }
+
+  async function registerFaceUnlock(){
+    try{
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      const userIdBytes = crypto.getRandomValues(new Uint8Array(16));
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: { name: 'Skarrel' },
+          user: {
+            id: userIdBytes,
+            name: userProfile.email,
+            displayName: userProfile.name || userProfile.email
+          },
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7 },
+            { type: 'public-key', alg: -257 }
+          ],
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+          timeout: 60000
+        }
+      });
+      const credIdB64 = bytesToBase64(new Uint8Array(cred.rawId));
+      localStorage.setItem('skarrel_faceUnlock_credId', credIdB64);
+      localStorage.setItem('skarrel_faceUnlock_email', userProfile.email);
+      localStorage.setItem('skarrel_faceUnlock_asked', 'true');
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+
+  function maybeOfferFaceUnlock(){
+    try{
+      if(!faceUnlockSupported() || !userProfile) return;
+      if(localStorage.getItem('skarrel_faceUnlock_asked') === 'true') return;
+      if(localStorage.getItem('skarrel_faceUnlock_credId')) return;
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(available=>{
+        if(!available) return;
+        $('#faceUnlockOfferError').style.display = 'none';
+        $('#faceUnlockOfferOverlay').style.display = 'flex';
+      }).catch(()=>{});
+    }catch(e){}
+  }
+
+  $('#faceUnlockEnableBtn').addEventListener('click', async ()=>{
+    const btn = $('#faceUnlockEnableBtn');
+    const origText = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Setting up…';
+    const ok = await registerFaceUnlock();
+    btn.disabled = false; btn.textContent = origText;
+    if(ok){
+      $('#faceUnlockOfferOverlay').style.display = 'none';
+    } else {
+      $('#faceUnlockOfferError').textContent = "Couldn't set that up on this device — you can try again later from your account.";
+      $('#faceUnlockOfferError').style.display = 'block';
+    }
+  });
+  $('#faceUnlockSkipBtn').addEventListener('click', ()=>{
+    try{ localStorage.setItem('skarrel_faceUnlock_asked', 'true'); }catch(e){}
+    $('#faceUnlockOfferOverlay').style.display = 'none';
+  });
+
+  function checkFaceLockForEmail(email){
+    try{
+      const credId = localStorage.getItem('skarrel_faceUnlock_credId');
+      const storedEmail = localStorage.getItem('skarrel_faceUnlock_email');
+      if(!credId) return;
+      if(storedEmail === email){
+        $('#faceUnlockOverlay').style.display = 'flex';
+      } else if(storedEmail && storedEmail !== email){
+        // A different account was set up for Face ID on this device — that setup no longer
+        // applies to whoever is signed in now, so clear it rather than blocking the wrong person.
+        clearFaceUnlock();
+      }
+    }catch(e){}
+  }
+  function hideFaceLockOverlay(){
+    $('#faceUnlockOverlay').style.display = 'none';
+  }
+  $('#faceUnlockBtn').addEventListener('click', async ()=>{
+    const btn = $('#faceUnlockBtn');
+    const errEl = $('#faceUnlockError');
+    errEl.style.display = 'none';
+    const origText = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Checking…';
+    try{
+      const credIdB64 = localStorage.getItem('skarrel_faceUnlock_credId');
+      if(!credIdB64) throw new Error('not set up on this device');
+      const credId = base64ToBytes(credIdB64);
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          allowCredentials: [{ type: 'public-key', id: credId }],
+          userVerification: 'required',
+          timeout: 60000
+        }
+      });
+      hideFaceLockOverlay();
+    }catch(e){
+      errEl.textContent = "Couldn't verify — try again, or use your password instead.";
+      errEl.style.display = 'block';
+    }finally{
+      btn.disabled = false; btn.textContent = origText;
+    }
+  });
+  $('#faceUnlockUsePasswordBtn').addEventListener('click', async ()=>{
+    hideFaceLockOverlay();
+    if(supabaseClient){ try{ await supabaseClient.auth.signOut(); }catch(e){} }
+    showAuthOverlay('login');
+  });
+
+  function renderFaceUnlockAccountControls(){
+    const row = $('#faceUnlockAccountRow');
+    row.innerHTML = '';
+    if(!faceUnlockSupported() || !userProfile) return;
+    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(available=>{
+      if(!available) return;
+      if(faceUnlockEnabledFor(userProfile.email)){
+        row.innerHTML = `
+          <p class="sub" style="margin:0 0 8px;">Face ID / Touch ID unlock is on for this device.</p>
+          <button type="button" id="faceUnlockTurnOffBtn" style="background:transparent; border:1.5px solid var(--line); color:var(--ink); border-radius:12px; padding:9px 16px; font-weight:700; font-size:12.5px; cursor:pointer;">Turn off Face ID unlock</button>
+        `;
+        $('#faceUnlockTurnOffBtn').addEventListener('click', ()=>{
+          clearFaceUnlock();
+          renderFaceUnlockAccountControls();
+        });
+      } else {
+        row.innerHTML = `<button type="button" id="faceUnlockEnableFromAccountBtn" style="background:var(--value-green); color:#fff; border:none; border-radius:12px; padding:9px 16px; font-weight:700; font-size:12.5px; cursor:pointer;">Enable Face ID / Touch ID unlock</button>`;
+        $('#faceUnlockEnableFromAccountBtn').addEventListener('click', async (e)=>{
+          const btn = e.target;
+          const origText = btn.textContent;
+          btn.disabled = true; btn.textContent = 'Setting up…';
+          const ok = await registerFaceUnlock();
+          btn.disabled = false; btn.textContent = origText;
+          if(ok){ renderFaceUnlockAccountControls(); }
+          else { alert("Couldn't set that up on this device — please try again."); }
+        });
+      }
+    }).catch(()=>{});
+  }
+
+
   function showAuthOverlay(mode){
     $('#authLoginView').style.display = mode === 'login' ? 'block' : 'none';
     $('#authSignupView').style.display = mode === 'signup' ? 'block' : 'none';
@@ -2434,6 +2650,7 @@
   $('#profileChip').addEventListener('click', ()=>{
     if(!userProfile) return;
     $('#authAccountSub').textContent = 'Signed in as ' + userProfile.name + ' (' + userProfile.email + ').';
+    renderFaceUnlockAccountControls();
     showAuthOverlay('account');
   });
 
@@ -2459,6 +2676,7 @@
         return;
       }
       await onAuthedUser(data.user);
+      maybeOfferFaceUnlock();
     }catch(err){
       errEl.textContent = 'Unexpected error: ' + err.message; errEl.style.display = 'block';
     }finally{
@@ -2486,6 +2704,7 @@
       }
       if(data.session){
         await onAuthedUser(data.user);
+        maybeOfferFaceUnlock();
       } else {
         $('#signup-password').value = '';
         errEl.style.color = 'var(--value-green)';
@@ -2553,7 +2772,9 @@
       supabaseClient.auth.onAuthStateChange((event, session)=>{
         if((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session && session.user){
           authRestoredFromSession = true;
-          onAuthedUser(session.user);
+          onAuthedUser(session.user).then(()=>{
+            if(event === 'INITIAL_SESSION'){ checkFaceLockForEmail(session.user.email); }
+          });
         } else if(event === 'SIGNED_OUT'){
           userProfile = null;
           isAdminUser = false;
@@ -2573,6 +2794,7 @@
         if(session && session.user){
           authRestoredFromSession = true;
           await onAuthedUser(session.user);
+          checkFaceLockForEmail(session.user.email);
           return;
         }
       }catch(e){}
