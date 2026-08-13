@@ -706,8 +706,8 @@
         </div>
         <span class="gate-badge" style="margin-bottom:0;">Retailer sign-in</span>
       </div>
-      <h3>This tool is for verified retailers only</h3>
-      <p class="hint">Posting is limited to accounts Skarrel has verified as an actual retailer, tied to your signed-in account — not a code anyone could type in. Not signed up as a retailer yet? Get in touch with the Skarrel team to become a verified partner.</p>
+      <h3>Retailer accounts only</h3>
+      <p class="hint">Not verified yet? <a href="mailto:support@skarrel.net" style="color:var(--value-green); font-weight:700; text-decoration:underline;">Contact the Skarrel team</a> to get set up.</p>
     </div>
 
     <div class="special-form" id="ps-formWrap" style="display:none;">
@@ -785,7 +785,7 @@
         <span class="gate-badge">Owner only</span>
       </div>
       <h3>This area is restricted</h3>
-      <p class="hint">Admin access is tied to a specific signed-in account, checked against the database — not a code or a device setting. If you believe you should have access, contact the Skarrel team.</p>
+      <p class="hint">Admin access is tied to a specific signed-in account, checked against the database — not a code or a device setting. If you believe you should have access, <a href="mailto:support@skarrel.net" style="color:var(--value-green); font-weight:700; text-decoration:underline;">contact the Skarrel team</a>.</p>
     </div>
 
     <div id="admin-dashboard" style="display:none;">
@@ -960,6 +960,7 @@
 
 <footer>
   <p>SKARREL · PRICES SUBMITTED BY SHOPPERS · SPECIALS POSTED BY VERIFIED RETAILERS · BRANCH LOCATIONS SOURCED FROM PUBLIC MAP LISTINGS · PRODUCT PHOTOS FROM OPEN FOOD FACTS CONTRIBUTORS (CC-BY-SA) — ALWAYS CONFIRM AT TILL</p>
+  <p style="margin-top:6px;">Questions or feedback? <a href="mailto:support@skarrel.net" style="color:inherit; text-decoration:underline;">support@skarrel.net</a></p>
 </footer>
 
 <script>
@@ -2649,7 +2650,7 @@
 
   $('#profileChip').addEventListener('click', ()=>{
     if(!userProfile) return;
-    $('#authAccountSub').textContent = 'Signed in as ' + userProfile.name + ' (' + userProfile.email + ').';
+    $('#authAccountSub').textContent = 'Signed in as ' + userProfile.name + '.';
     renderFaceUnlockAccountControls();
     showAuthOverlay('account');
   });
