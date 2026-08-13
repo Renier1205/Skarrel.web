@@ -256,6 +256,10 @@
   .pc-trust{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
   .pc-pickup{ font-family:'Quicksand',sans-serif; font-size:12px; opacity:.75; line-height:1.5; margin-top:8px; }
   .pc-pickup.none{ opacity:.4; }
+  .branch-pickup-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .branch-report-btn{ background:none; border:none; padding:2px 4px; font-size:12px; opacity:.4; cursor:pointer; flex:0 0 auto; }
+  .branch-report-btn:hover{ opacity:1; }
+  .branch-report-btn:disabled{ opacity:.2; cursor:default; }
   .pc-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
   .trust-cell{ display:flex; flex-direction:column; gap:4px; align-items:flex-start; }
   .trust-btn{
@@ -803,6 +807,10 @@
       </div>
       <p class="sub" id="admin-retailerStatus" style="display:none; margin-top:8px;"></p>
       <div id="admin-retailer-list" style="margin-top:14px;"></div>
+
+      <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Flagged branches</h3>
+      <p class="sub" style="margin-top:2px;">Branches shoppers have reported as wrong or out of date — check and remove any that no longer exist or were entered incorrectly.</p>
+      <div id="admin-branches"></div>
 
       <h3 style="margin-top:28px; font-family:'Baloo 2',sans-serif; font-size:18px;">Prices</h3>
       <p class="sub" style="margin-top:2px;">Remove anything that's wrong, spammy, or duplicated.</p>
@@ -1427,6 +1435,22 @@
     const parts = key.split("::");
     return { productId: parts[0], store: parts[1], brand: parts.slice(2).join("::") || "Unspecified brand" };
   }
+  // ---- Branch entries are stored internally as {address, reportCount} objects (not plain
+  // strings) so shoppers can flag a wrong branch the same way they already flag a wrong price. ----
+  function toBranchEntry(address, reportCount){
+    return { address, reportCount: reportCount || 0 };
+  }
+  function normalizeDefaultBranches(){
+    const out = {};
+    Object.keys(DEFAULT_BRANCHES).forEach(store=>{
+      out[store] = {};
+      Object.keys(DEFAULT_BRANCHES[store]).forEach(town=>{
+        out[store][town] = DEFAULT_BRANCHES[store][town].map(addr=>toBranchEntry(addr, 0));
+      });
+    });
+    return out;
+  }
+
   async function loadBranchesFromSupabase(){
     try{
       if(!supabaseClient) throw new Error('no-client');
@@ -1437,21 +1461,43 @@
       data.forEach(row=>{
         if(!grouped[row.store]) grouped[row.store] = {};
         if(!grouped[row.store][row.town]) grouped[row.store][row.town] = [];
-        grouped[row.store][row.town].push(row.address);
+        grouped[row.store][row.town].push(toBranchEntry(row.address, row.report_count));
         if(row.added_by_user) addedCount++;
       });
       BRANCHES = grouped;
       userAddedBranchCount = addedCount;
-    }catch(e){ BRANCHES = DEFAULT_BRANCHES; userAddedBranchCount = 0; }
+    }catch(e){ BRANCHES = normalizeDefaultBranches(); userAddedBranchCount = 0; }
   }
 
   async function addUserBranch(store, town, address){
     if(!BRANCHES[store]) BRANCHES[store] = {};
     if(!BRANCHES[store][town]) BRANCHES[store][town] = [];
-    BRANCHES[store][town].push(address);
+    BRANCHES[store][town].push(toBranchEntry(address, 0));
     userAddedBranchCount++;
     try{
       if(supabaseClient) await supabaseClient.from('branches').insert({ store, town, address, added_by_user: true });
+    }catch(e){}
+  }
+
+  async function reportBranch(store, town, address){
+    const entries = (BRANCHES[store] && BRANCHES[store][town]) || [];
+    const entry = entries.find(e=>e.address === address);
+    if(!entry) return null;
+    entry.reportCount = (entry.reportCount || 0) + 1;
+    try{
+      if(supabaseClient){
+        await supabaseClient.from('branches').update({ report_count: entry.reportCount }).eq('store', store).eq('town', town).eq('address', address);
+      }
+    }catch(e){}
+    return entry.reportCount;
+  }
+
+  async function deleteBranchRow(store, town, address){
+    if(BRANCHES[store] && BRANCHES[store][town]){
+      BRANCHES[store][town] = BRANCHES[store][town].filter(e=>e.address !== address);
+    }
+    try{
+      if(supabaseClient) await supabaseClient.from('branches').delete().eq('store', store).eq('town', town).eq('address', address);
     }catch(e){}
   }
 
@@ -1752,7 +1798,7 @@
     const map = allBranchesFor(store);
     const opts = [];
     Object.keys(map).forEach(town=>{
-      map[town].forEach(addr=>{ opts.push({town, addr}); });
+      map[town].forEach(entry=>{ opts.push({town, addr: entry.address}); });
     });
     if(opts.length === 0){
       sel.innerHTML = `<option value="">No branches listed</option>`;
@@ -1908,7 +1954,16 @@
       if(branches.length === 0){
         pickupHtml = userLocation==="All areas" ? "Pick a location" : "Not in " + userLocation;
       } else {
-        pickupHtml = branches.map(b=>"• "+b).join('<br>');
+        pickupHtml = branches.map(b=>{
+          const flagged = (b.reportCount || 0) >= 3;
+          const safeStore = e.store.replace(/"/g,'&quot;');
+          const safeTown = userLocation.replace(/"/g,'&quot;');
+          const safeAddr = b.address.replace(/"/g,'&quot;');
+          return `<div class="branch-pickup-row">
+            <span>• ${b.address}${flagged ? ' <span class="disputed-flag" style="margin-left:4px;">⚠️ possibly incorrect</span>' : ''}</span>
+            <button type="button" class="branch-report-btn" data-branch-store="${safeStore}" data-branch-town="${safeTown}" data-branch-address="${safeAddr}" title="Report this branch as wrong">🚩</button>
+          </div>`;
+        }).join('');
       }
       const daysOld = (Date.now() - e.rec.updatedAt) / 86400000;
       const isStale = daysOld > 21;
@@ -1944,6 +1999,16 @@
   }
 
   $('#m-rows').addEventListener('click', async (e)=>{
+    const branchReportBtn = e.target.closest('.branch-report-btn');
+    if(branchReportBtn){
+      branchReportBtn.disabled = true;
+      const { branchStore, branchTown, branchAddress } = branchReportBtn.dataset;
+      await reportBranch(branchStore, branchTown, branchAddress);
+      if(currentModalProductId){
+        renderModalRows(currentModalProductId, $('#m-brand-filter').value, $('#m-location-filter').value);
+      }
+      return;
+    }
     const trolleyBtn = e.target.closest('.add-trolley-btn');
     if(trolleyBtn){
       addToTrolley(trolleyBtn.dataset.product, trolleyBtn.dataset.name, trolleyBtn.dataset.unit, trolleyBtn.dataset.store, trolleyBtn.dataset.brand, parseFloat(trolleyBtn.dataset.price));
@@ -2879,7 +2944,8 @@
     const map = allBranchesFor(store);
     const needle = locationText.toLowerCase();
     for(const town of Object.keys(map)){
-      for(const addr of map[town]){
+      for(const entry of map[town]){
+        const addr = entry.address;
         if(addr.toLowerCase().includes(needle) || needle.includes(town.toLowerCase())){
           return { town, addr };
         }
@@ -3775,6 +3841,32 @@
     }
   });
 
+  function renderFlaggedBranches(){
+    const listEl = $('#admin-branches');
+    const flagged = [];
+    Object.keys(BRANCHES).forEach(store=>{
+      Object.keys(BRANCHES[store]).forEach(town=>{
+        BRANCHES[store][town].forEach(entry=>{
+          if((entry.reportCount || 0) > 0){
+            flagged.push({ store, town, address: entry.address, reportCount: entry.reportCount });
+          }
+        });
+      });
+    });
+    flagged.sort((a,b)=> b.reportCount - a.reportCount);
+
+    listEl.innerHTML = flagged.length === 0
+      ? `<div class="empty">No branches reported yet.</div>`
+      : flagged.map(f=>`
+        <div class="review-card">
+          <div class="rc-top">
+            <div class="rc-name">${f.store} — ${f.town}: ${f.address.replace(/</g,'&lt;')} <span class="disputed-flag" style="margin-left:6px;">${f.reportCount} report${f.reportCount!==1?'s':''}</span></div>
+            <button class="tr-remove" data-admin-branch-store="${f.store.replace(/"/g,'&quot;')}" data-admin-branch-town="${f.town.replace(/"/g,'&quot;')}" data-admin-branch-address="${f.address.replace(/"/g,'&quot;')}" title="Remove">✕</button>
+          </div>
+        </div>
+      `).join('');
+  }
+
   function renderAdminDashboard(){
     const priceKeys = Object.keys(prices);
     const productsWithPrices = new Set(priceKeys.map(k=>k.split('::')[0])).size;
@@ -3794,6 +3886,7 @@
     `;
 
     renderRetailerList();
+    renderFlaggedBranches();
 
     const priceRows = priceKeys.map(key=>{
       const {store, brand} = parsePriceKey(key);
@@ -3837,6 +3930,17 @@
   }
 
   $('#admin-dashboard').addEventListener('click', async (e)=>{
+    const branchBtn = e.target.closest('[data-admin-branch-address]');
+    if(branchBtn){
+      if(!confirm('Remove this branch? This affects everyone using the app.')) return;
+      const { adminBranchStore, adminBranchTown, adminBranchAddress } = branchBtn.dataset;
+      await deleteBranchRow(adminBranchStore, adminBranchTown, adminBranchAddress);
+      populateLocationSelect();
+      populateBranchSelects();
+      renderProductGrid();
+      renderFlaggedBranches();
+      return;
+    }
     const priceBtn = e.target.closest('[data-admin-price-key]');
     if(priceBtn){
       if(!confirm('Remove this price? This affects everyone using the app.')) return;
