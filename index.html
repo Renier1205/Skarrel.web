@@ -3740,7 +3740,7 @@
       statusEl.style.display = 'none';
       errorEl.textContent = (err && err.message === 'UNSUPPORTED_RETAILER')
         ? "This receipt doesn't look like it's from a retailer Skarrel supports (Woolworths, Checkers, Pick n Pay, Shoprite, SPAR, or Food Lover's Market) — so there's nothing to add from it."
-        : "Couldn't read that video clearly — try panning slower and steadier over about 10-20 seconds, make sure the receipt stays in frame and well-lit, or use a single photo instead for a shorter slip. [DEBUG: " + (err && err.message ? err.message : 'unknown') + "]";
+        : "Couldn't read that video clearly — try panning slower and steadier over about 10-20 seconds, make sure the receipt stays in frame and well-lit, or use a single photo instead for a shorter slip.";
       errorEl.style.display = 'block';
     }finally{
       $('#scanVideoGoBtn').disabled = false;
@@ -3861,7 +3861,7 @@
       statusEl.style.display = 'none';
       errorEl.textContent = (err && err.message === 'UNSUPPORTED_RETAILER')
         ? "This receipt doesn't look like it's from a retailer Skarrel supports (Woolworths, Checkers, Pick n Pay, Shoprite, SPAR, or Food Lover's Market) — so there's nothing to add from it."
-        : "Couldn't read that receipt clearly — try a brighter, flatter photo on a plain surface, or add the price manually instead. [DEBUG: " + (err && err.message ? err.message : 'unknown') + "]";
+        : "Couldn't read that receipt clearly — try a brighter, flatter photo on a plain surface, or add the price manually instead.";
       errorEl.style.display = 'block';
     }finally{
       $('#scanGoBtn').disabled = false;
