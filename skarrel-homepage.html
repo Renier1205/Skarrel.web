@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skarrel — Same groceries. Different price. Every store.</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 46'%3E%3Crect width='46' height='46' rx='12' fill='%23C1774A'/%3E%3Cpath d='M12 32 C 15 25, 13 17, 16.5 10.5' stroke='%23FBF6EA' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Cpath d='M21 34 C 24.5 25.5, 21.5 16, 25 7.5' stroke='%23FBF6EA' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3Cpath d='M30 32 C 33 25.5, 30 18, 33 11.5' stroke='%23FBF6EA' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap');
+
+  :root{
+    --ink:#4A3B2D;
+    --paper:#F3EADA;
+    --paper-dim:#E7DBC4;
+    --paper-card:#FBF6EA;
+    --value-green:#74845A;
+    --value-green-soft:#E5EADA;
+    --clay:#C1774A;
+    --clay-soft:#F3E1D3;
+    --ochre:#BC9A46;
+    --line:#DCCEAF;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Quicksand',sans-serif; -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.display{ font-family:'Baloo 2',sans-serif; font-weight:700; letter-spacing:-0.01em; line-height:1.05; margin:0; }
+  .hand{ font-family:'Caveat',cursive; }
+  a{ color:inherit; }
+  button{ font-family:inherit; cursor:pointer; }
+  ::selection{ background:var(--ochre); color:var(--paper-card); }
+  :focus-visible{ outline:2px solid var(--ochre); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+
+  .wrap{ max-width:1120px; margin:0 auto; padding:0 24px; }
+  .torn{ position:relative; height:18px;
+    background:
+      linear-gradient(135deg, var(--paper) 50%, transparent 50%) 0 0/14px 18px repeat-x,
+      linear-gradient(-135deg, var(--paper) 50%, transparent 50%) 0 0/14px 18px repeat-x;
+  }
+  .torn.dark{
+    background:
+      linear-gradient(135deg, var(--ink) 50%, transparent 50%) 0 0/14px 18px repeat-x,
+      linear-gradient(-135deg, var(--ink) 50%, transparent 50%) 0 0/14px 18px repeat-x;
+  }
+
+  /* ---------- nav ---------- */
+  header.nav{ position:sticky; top:0; z-index:50; background:var(--ink); color:var(--paper); }
+  header.nav .wrap{ display:flex; align-items:center; justify-content:space-between; padding:14px 24px; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-icon{ width:32px; height:32px; border-radius:9px; background:var(--clay); display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+  .brand .mark{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:19px; }
+  nav.links{ display:flex; align-items:center; gap:26px; }
+  nav.links a{ font-weight:700; font-size:13.5px; opacity:.75; text-decoration:none; }
+  nav.links a:hover{ opacity:1; }
+  .btn{ display:inline-flex; align-items:center; gap:6px; font-weight:700; font-size:13.5px; border-radius:20px; padding:10px 18px; border:none; text-decoration:none; letter-spacing:.01em; }
+  .btn-clay{ background:var(--clay); color:#fff; }
+  .btn-clay:hover{ filter:brightness(1.06); }
+  .btn-ghost{ background:transparent; color:var(--paper); border:1.5px solid rgba(255,255,255,.3); }
+  @media (max-width:760px){ nav.links a{ display:none; } }
+
+  /* ---------- hero ---------- */
+  .hero{ background:var(--ink); color:var(--paper); padding:56px 0 0; }
+  .hero .grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:56px; align-items:center; padding-bottom:52px; }
+  .eyebrow{ font-family:'Caveat',cursive; font-weight:700; font-size:19px; color:var(--ochre); display:block; margin-bottom:6px; }
+  .hero h1{ font-size:52px; color:var(--paper); }
+  .hero h1 .accent{ color:var(--ochre); }
+  .hero p.lede{ font-weight:500; font-size:17px; max-width:46ch; opacity:.82; margin-top:18px; line-height:1.55; }
+  .hero-ctas{ display:flex; gap:12px; margin-top:28px; flex-wrap:wrap; }
+  .hero-note{ font-family:'Caveat',cursive; font-weight:600; font-size:16px; opacity:.7; margin-top:16px; }
+  @media (max-width:860px){ .hero .grid{ grid-template-columns:1fr; padding-bottom:36px; } .hero h1{ font-size:36px; } }
+
+  /* ---------- demo receipt (the signature element) ---------- */
+  .demo-wrap{ display:flex; flex-direction:column; align-items:center; }
+  .demo-card{
+    background:var(--paper-card); color:var(--ink); width:100%; max-width:340px;
+    padding:22px 22px 18px; border-radius:8px; box-shadow:0 22px 50px rgba(20,14,6,.45);
+    transform:rotate(-1.1deg);
+  }
+  .demo-head{ display:flex; justify-content:space-between; align-items:center; border-bottom:2px dashed var(--line); padding-bottom:10px; margin-bottom:12px; }
+  .demo-head .dh-label{ font-family:'Baloo 2',sans-serif; font-weight:600; font-size:12px; letter-spacing:.04em; opacity:.55; text-transform:uppercase; }
+  .demo-chips{ display:flex; gap:6px; }
+  .demo-chip{ font-family:'Quicksand',sans-serif; font-weight:700; font-size:11px; background:var(--paper-dim); border:none; color:var(--ink); padding:5px 10px; border-radius:14px; opacity:.6; }
+  .demo-chip.active{ background:var(--ink); color:var(--paper); opacity:1; }
+  .demo-product{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+  .demo-product .dp-name{ font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; }
+  .demo-product .dp-unit{ font-size:11.5px; opacity:.55; font-weight:600; }
+  .demo-row{ display:flex; justify-content:space-between; align-items:center; padding:7px 0; font-weight:600; font-size:14.5px; opacity:0; transform:translateY(6px); transition:opacity .35s ease, transform .35s ease; }
+  .demo-row.show{ opacity:1; transform:translateY(0); }
+  .demo-row .dr-store{ opacity:.75; }
+  .demo-row.winner{ color:var(--value-green); font-weight:800; }
+  .dr-circle{ position:relative; display:inline-block; padding:1px 3px; }
+  .dr-circle svg{ position:absolute; left:-7px; top:-8px; width:calc(100% + 14px); height:calc(100% + 16px); pointer-events:none; }
+  .dr-circle svg path{ stroke-dasharray:220; stroke-dashoffset:220; transition:stroke-dashoffset .55s ease .25s; }
+  .dr-circle.drawn svg path{ stroke-dashoffset:0; }
+  .demo-save{ margin-top:10px; padding-top:10px; border-top:2px dashed var(--line); font-family:'Caveat',cursive; font-weight:700; font-size:17px; text-align:center; color:var(--clay); opacity:0; transition:opacity .4s ease .5s; }
+  .demo-save.show{ opacity:1; }
+  .demo-pickup{ margin-top:10px; font-size:11px; opacity:.5; text-align:center; font-weight:600; }
+
+  /* ---------- sections ---------- */
+  main section.block{ padding:64px 0; border-bottom:1px solid var(--line); }
+  main section.block:last-child{ border-bottom:none; }
+  .section-head{ max-width:60ch; }
+  .section-head h2{ font-size:30px; margin-top:6px; }
+  .section-head p.sub{ opacity:.72; font-size:15.5px; margin-top:10px; font-weight:500; line-height:1.6; }
+
+  /* how it works */
+  .steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; margin-top:34px; }
+  .step{ background:var(--paper-card); border:1px solid var(--line); border-radius:16px; padding:22px 20px; }
+  .step .step-num{ font-family:'Baloo 2',sans-serif; font-weight:800; font-size:26px; color:var(--clay); opacity:.85; }
+  .step h3{ font-size:18px; margin-top:10px; }
+  .step p{ font-size:13.5px; opacity:.75; margin-top:8px; line-height:1.55; font-weight:500; }
+  @media (max-width:820px){ .steps{ grid-template-columns:1fr; } }
+
+  /* trust grid */
+  .trust-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:18px; margin-top:34px; }
+  .trust-card{ background:var(--paper-card); border:1px solid var(--line); border-radius:16px; padding:22px; display:flex; gap:14px; align-items:flex-start; }
+  .trust-icon{ width:38px; height:38px; border-radius:11px; background:var(--value-green-soft); color:var(--value-green); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; }
+  .trust-card h3{ font-size:15.5px; }
+  .trust-card p{ font-size:13px; opacity:.72; margin-top:6px; line-height:1.55; font-weight:500; }
+  @media (max-width:760px){ .trust-grid{ grid-template-columns:1fr; } }
+
+  /* for retailers strip */
+  .retailer-strip{ background:var(--ink); color:var(--paper); border-radius:22px; padding:40px 36px; display:flex; justify-content:space-between; align-items:center; gap:30px; flex-wrap:wrap; }
+  .retailer-strip h3{ font-size:22px; color:var(--paper); max-width:30ch; }
+  .retailer-strip p{ opacity:.8; font-size:13.5px; margin-top:8px; max-width:42ch; font-weight:500; line-height:1.6; }
+
+  /* footer */
+  footer{ padding:30px 0; text-align:center; }
+  footer p{ font-size:11px; opacity:.45; font-weight:600; }
+  footer a{ text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="18" height="18" viewBox="0 0 46 46" fill="none">
+          <path d="M12 32 C 15 25, 13 17, 16.5 10.5" stroke="#FBF6EA" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M21 34 C 24.5 25.5, 21.5 16, 25 7.5" stroke="#FBF6EA" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M30 32 C 33 25.5, 30 18, 33 11.5" stroke="#FBF6EA" stroke-width="4" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <span class="mark">Skarrel</span>
+    </div>
+    <nav class="links">
+      <a href="#how">How it works</a>
+      <a href="#trust">Built by shoppers</a>
+      <a href="#retailers">For retailers</a>
+    </nav>
+    <a class="btn btn-clay" href="https://skarrel-rho.vercel.app" target="_blank" rel="noopener">Open Skarrel</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap grid">
+    <div>
+      <span class="eyebrow">real prices, from real shoppers</span>
+      <h1>Same groceries.<br>Different price.<br><span class="accent">Every store.</span></h1>
+      <p class="lede">Skarrel is a free price-comparison app for South African shoppers. It shows you what Woolworths, Checkers, Pick n Pay, Shoprite, SPAR and Food Lover's Market are actually charging for the same product, brand by brand, right now — so you know exactly where to go before you leave the house.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-clay" href="https://skarrel-rho.vercel.app" target="_blank" rel="noopener">Start comparing — it's free</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+      <p class="hero-note">no ads, no data selling — just honest prices, kept honest by the people who shop them.</p>
+    </div>
+    <div class="demo-wrap">
+      <div class="demo-card">
+        <div class="demo-head">
+          <span class="dh-label">Skarrel · live compare</span>
+          <div class="demo-chips" id="demoChips"></div>
+        </div>
+        <div class="demo-product">
+          <div>
+            <div class="dp-name" id="demoName">Full Cream Milk 2L</div>
+            <div class="dp-unit" id="demoUnit">Clover · 2L</div>
+          </div>
+        </div>
+        <div id="demoRows"></div>
+        <div class="demo-save" id="demoSave"></div>
+        <div class="demo-pickup" id="demoPickup"></div>
+      </div>
+    </div>
+  </div>
+  <div class="torn"></div>
+</section>
+
+<main>
+  <section class="block" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">how it works</span>
+        <h2>Three steps, every time you shop</h2>
+        <p class="sub">No account tricks, no fine print — just the same three steps whether you're grabbing milk or doing the full week's shop.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h3>Search or scan</h3>
+          <p>Look up a product, or snap a photo of last week's receipt — Skarrel reads the retailer, branch, and every price automatically.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h3>See who's cheapest</h3>
+          <p>Every price is shown store by store, brand by brand, filtered to branches actually near you — not just a national average.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h3>Track what you saved</h3>
+          <p>Add picks to your trolley and Skarrel tallies your savings by month, so the pattern of shopping smarter actually adds up.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="trust">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">kept honest, together</span>
+        <h2>Built by shoppers, checked by shoppers</h2>
+        <p class="sub">Skarrel doesn't guess at prices — every one comes from a real person, at a real till, and stays accurate because the same community can flag what's wrong.</p>
+      </div>
+      <div class="trust-grid">
+        <div class="trust-card">
+          <div class="trust-icon">🧾</div>
+          <div>
+            <h3>Prices from real receipts</h3>
+            <p>Shoppers add prices by hand or scan a till slip — Skarrel reads the retailer, branch, date, and every item for you to check before it's added.</p>
+          </div>
+        </div>
+        <div class="trust-card">
+          <div class="trust-icon">📍</div>
+          <div>
+            <h3>Every branch, not just the brand</h3>
+            <p>Prices and specials are matched to your actual nearest branch, and shoppers can flag a wrong or outdated one so the map stays accurate over time.</p>
+          </div>
+        </div>
+        <div class="trust-card">
+          <div class="trust-icon">👍</div>
+          <div>
+            <h3>Confirmed or disputed, out loud</h3>
+            <p>Anyone can confirm a price is still right or flag one that isn't — enough reports and it's marked disputed before you rely on it.</p>
+          </div>
+        </div>
+        <div class="trust-card">
+          <div class="trust-icon">🔖</div>
+          <div>
+            <h3>Real specials, from verified retailers</h3>
+            <p>Only retailer accounts Skarrel has personally verified can pin a special to the board — so shoppers aren't wading through anonymous noise.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="retailers">
+    <div class="wrap">
+      <div class="retailer-strip">
+        <div>
+          <span class="eyebrow" style="color:var(--ochre);">for retailers</span>
+          <h3>Reach shoppers who are already deciding where to buy</h3>
+          <p>Skarrel sends shoppers to your branches and your site — it's built to work alongside retailers, not around them.</p>
+        </div>
+        <a class="btn btn-clay" href="mailto:support@skarrel.net">Get in touch</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>SKARREL · HERE TO HELP YOU SAVE · <a href="mailto:support@skarrel.net">support@skarrel.net</a></p>
+</footer>
+
+<script>
+(function(){
+  var DEMOS = [
+    {
+      name: "Full Cream Milk 2L", unit: "Clover · 2L",
+      rows: [
+        { store: "Woolworths", price: "R32.00", winner:false },
+        { store: "Checkers", price: "R29.00", winner:true },
+        { store: "Pick n Pay", price: "R30.50", winner:false }
+      ],
+      save: "you save R3.00 at Checkers!",
+      pickup: "nearest: Checkers Kalahari Mall, Upington"
+    },
+    {
+      name: "White Bread 700g", unit: "Sasko · 700g",
+      rows: [
+        { store: "SPAR", price: "R21.99", winner:false },
+        { store: "Shoprite", price: "R18.49", winner:true },
+        { store: "Pick n Pay", price: "R20.00", winner:false }
+      ],
+      save: "you save R3.50 at Shoprite!",
+      pickup: "nearest: Shoprite, Upington CBD"
+    },
+    {
+      name: "Free Range Eggs (18)", unit: "18 eggs",
+      rows: [
+        { store: "Woolworths", price: "R64.99", winner:false },
+        { store: "Pick n Pay", price: "R58.00", winner:false },
+        { store: "SPAR", price: "R52.99", winner:true }
+      ],
+      save: "you save R12.00 at SPAR!",
+      pickup: "nearest: SUPERSPAR Kalahari, Upington"
+    }
+  ];
+
+  var chipsEl = document.getElementById('demoChips');
+  var nameEl = document.getElementById('demoName');
+  var unitEl = document.getElementById('demoUnit');
+  var rowsEl = document.getElementById('demoRows');
+  var saveEl = document.getElementById('demoSave');
+  var pickupEl = document.getElementById('demoPickup');
+  var current = 0;
+  var timer = null;
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function renderChips(){
+    chipsEl.innerHTML = '';
+    DEMOS.forEach(function(d, i){
+      var b = document.createElement('button');
+      b.className = 'demo-chip' + (i === current ? ' active' : '');
+      b.textContent = d.name.split(' ')[0] + (d.name.split(' ')[1] && !/\d/.test(d.name.split(' ')[1]) ? ' ' + d.name.split(' ')[1] : '');
+      b.addEventListener('click', function(){ show(i, true); });
+      chipsEl.appendChild(b);
+    });
+  }
+
+  function show(idx, userTriggered){
+    current = idx;
+    var d = DEMOS[idx];
+    nameEl.textContent = d.name;
+    unitEl.textContent = d.unit;
+    pickupEl.textContent = d.pickup;
+    saveEl.textContent = d.save;
+    saveEl.classList.remove('show');
+
+    rowsEl.innerHTML = d.rows.map(function(r){
+      if(!r.winner){
+        return '<div class="demo-row"><span class="dr-store">' + r.store + '</span><span>' + r.price + '</span></div>';
+      }
+      return '<div class="demo-row winner"><span class="dr-store">' + r.store + '</span>' +
+        '<span class="dr-circle">' + r.price +
+        '<svg viewBox="0 0 80 34"><path d="M6 20 C 2 8, 20 2, 40 3 C 62 4, 78 8, 74 18 C 70 30, 44 33, 22 30 C 8 28, 2 24, 6 20" fill="none" stroke="#C1774A" stroke-width="2.4" stroke-linecap="round"/></svg>' +
+        '</span></div>';
+    }).join('');
+
+    renderChips();
+
+    var rowEls = rowsEl.querySelectorAll('.demo-row');
+    rowEls.forEach(function(el, i){
+      setTimeout(function(){ el.classList.add('show'); }, reduceMotion ? 0 : 90 * i);
+    });
+    var circle = rowsEl.querySelector('.dr-circle');
+    setTimeout(function(){
+      if(circle) circle.classList.add('drawn');
+      saveEl.classList.add('show');
+    }, reduceMotion ? 0 : 90 * rowEls.length + 150);
+
+    if(userTriggered){ resetTimer(); }
+  }
+
+  function resetTimer(){
+    if(timer) clearInterval(timer);
+    if(reduceMotion) return;
+    timer = setInterval(function(){
+      show((current + 1) % DEMOS.length, false);
+    }, 4200);
+  }
+
+  show(0, false);
+  resetTimer();
+})();
+</script>
+
+</body>
+</html>
